@@ -1,2 +1,11 @@
+# Dependencies
 node_modules/
+
+# Environment variables
 .env
+
+# Temporary files
+tmp/
+
+# Local test files
+backend/src/services/testWhisper.js

@@ -70,7 +70,68 @@ function chunkTranscript(text, maxLength) {
   return chunks;
 }
 
-module.exports = { chunkTranscript, extractVideoId, sanitizeText, validateYouTubeUrl };
+// Like chunkTranscript, but each new chunk re-starts ~overlapChars before the
+// previous chunk's end so sentence/idea boundaries aren't cut mid-thought.
+function chunkWithOverlap(text, maxChars, overlapChars) {
+  if (!text || typeof text !== 'string' || !maxChars) {
+    return [];
+  }
+
+  const words = text.split(' ');
+  const chunks = [];
+  let current = [];
+
+  for (const word of words) {
+    const nextLength = (current.length ? current.join(' ').length + 1 : 0) + word.length;
+    if (current.length && nextLength > maxChars) {
+      chunks.push(current.join(' '));
+
+      // Build the overlap tail from the end of the current chunk.
+      let tail = [];
+      let tailLength = 0;
+      for (let i = current.length - 1; i >= 0; i--) {
+        if (tail.length && tailLength + 1 + current[i].length > overlapChars) break;
+        tail.unshift(current[i]);
+        tailLength += current[i].length + (tail.length ? 1 : 0);
+      }
+      // Guarantee forward progress even if overlapChars >= maxChars.
+      if (tail.length >= current.length) {
+        tail = current.slice(1);
+      }
+      current = tail;
+    }
+    current.push(word);
+  }
+
+  if (current.length) {
+    chunks.push(current.join(' '));
+  }
+
+  return chunks;
+}
+
+// Free + keyless YouTube video title lookup via oEmbed. Best-effort: returns
+// null on any failure so callers can degrade gracefully.
+async function getVideoTitle(videoId) {
+  if (!videoId) return null;
+  try {
+    const url =
+      'https://www.youtube.com/oembed?url=' +
+      encodeURIComponent('https://www.youtube.com/watch?v=' + videoId) +
+      '&format=json';
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const data = await response.json();
+    return {
+      title: data.title || null,
+      author: data.author_name || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+module.exports = { chunkTranscript, chunkWithOverlap, extractVideoId, getVideoTitle, sanitizeText, validateYouTubeUrl };
 
 
 

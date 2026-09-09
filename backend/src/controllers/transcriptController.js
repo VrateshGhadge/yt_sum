@@ -19,9 +19,9 @@ async function getTranscript(req, res){
             })
         }
 
-        if(!validateYouTubeUrl){
+        if(!validateYouTubeUrl(youtubeUrl)){
             return res.status(400).json({
-                success: true,
+                success: false,
                 message: "Invalid Youtube URl"
             })
         }
@@ -29,7 +29,7 @@ async function getTranscript(req, res){
         const videoId = extractVideoId(youtubeUrl);
         if(!videoId){
             return res.status(400).json({
-                success: true,
+                success: false,
                 message: "Unable to extract video ID"
             })
         }
@@ -46,6 +46,7 @@ async function getTranscript(req, res){
         return res.status(200).json({
             success: true,
             data: {
+                userId: req.auth.userId,
                 videoId,
                 transcript
             }

@@ -1,9 +1,9 @@
 const router = require('express').Router();
+const requireAuthJson = require('../middleware/clerkAuth');
 
 const { getTranscript } = require('../controllers/transcriptController');
-const authMiddleware = require('../middleware/authMiddleware');
 
-// POST /api/transcript
-router.post('/', authMiddleware, getTranscript);
+// POST /api/transcript (protected via Clerk session)
+router.post('/', requireAuthJson, getTranscript);
 
 module.exports = router;

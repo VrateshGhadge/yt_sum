@@ -21,17 +21,4 @@ const globalLimiter = rateLimit({
   },
 });
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  standardHeaders: true,
-  legacyHeaders: false,
-  handler: (req, res, next) => {
-    res.status(429).json({
-      success: false,
-      message: 'Too many login attempts. Try again later.'
-    });
-  },
-});
-
-module.exports = { globalLimiter , authLimiter };
+module.exports = { globalLimiter };

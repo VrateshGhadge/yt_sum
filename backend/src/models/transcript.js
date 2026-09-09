@@ -7,8 +7,8 @@ const TranscriptSchema = new Schema({
     },
 
     user: {
-        type: Schema.Types.ObjectId,
-        ref: 'User'
+        // Clerk userId (user_xxx) of the authenticated user
+        type: String,
     },
 
     // transcript_url: {  [ADD LATER]

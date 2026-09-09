@@ -4,9 +4,11 @@ const connectDB = require('./config/db');
 const dotenv = require('dotenv');
 const { globalLimiter } = require('./middleware/rateLimiter');
 
-dotenv.config();
+dotenv.config({ path: ['.env.local', '.env'] });
 
 const app = express();
+const { clerkMiddleware } = require("@clerk/express");
+app.use(clerkMiddleware());
 
 // CORS
 app.use(
@@ -19,8 +21,8 @@ app.use(
 );
 
 // Routes
-const authRouter = require('./routes/authRoutes');
 const transcriptRoutes = require('./routes/transcriptRoutes');
+const summaryRoutes = require('./routes/summaryRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 app.use(express.json());
@@ -29,8 +31,8 @@ app.use(express.json());
 app.use(globalLimiter);
 
 
-app.use('/api/auth', authRouter);
 app.use('/api/transcript', transcriptRoutes);
+app.use('/api/summary', summaryRoutes);
 
 app.use(errorHandler);
 

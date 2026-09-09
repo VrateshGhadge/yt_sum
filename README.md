@@ -1,18 +1,18 @@
 # YouTube Transcript Backend
 
-A backend service that accepts a **YouTube video URL** and returns a **clean transcript** using a **fallback-based, production-style design**.
+A backend service that accepts a **YouTube video URL** and returns a **clean transcript** with **free AI summaries** — no OpenAI, no billing.
 
-The system first tries to fetch YouTube captions and falls back to **audio-based transcription (Whisper)** when captions are unavailable.
+The system fetches YouTube captions (free, keyless) and summarizes them using **OpenRouter `:free` models**, so the entire pipeline costs \$0.
 
 ---
 
 ## What This Project Does
 
 - Accepts a YouTube URL
-- Tries to fetch captions from YouTube
-- Falls back to Whisper transcription if captions fail
+- Fetches captions from YouTube
 - Returns sanitized transcript text
-- Designed to later support AI summarization
+- Generates AI summaries via OpenRouter free models
+- Designed to later support summary modes, Q&A, notes/quiz, and video history
 
 ---
 
@@ -43,8 +43,7 @@ Routes → Controllers → Services → Utils / Models
 
 Request → Auth → Transcript Service
 → YouTube captions
-→ Whisper (fallback)
-→ Clean transcript → Response
+→ Clean transcript → AI summary (OpenRouter free) → Response
 
 ```
 
@@ -52,11 +51,11 @@ Request → Auth → Transcript Service
 
 ## Features
 
-- JWT authentication
+- Clerk session authentication
 - Protected API routes
 - Rate limiting
 - Centralized error handling
-- Cost-aware fallback design
+- Free AI summaries via OpenRouter `:free` models (zero spend)
 
 ---
 
@@ -64,20 +63,19 @@ Request → Auth → Transcript Service
 
 - Node.js, Express
 - MongoDB, Mongoose
-- JWT, bcrypt
+- Clerk, @clerk/express
 - youtube-transcript
-- OpenAI Whisper (fallback)
-- yt-dlp, ffmpeg
+- OpenRouter (free models)
 
 ---
 
-## Note on Whisper
+## Note on AI Costs
 
-Whisper requires OpenAI billing.
+All AI calls go to **OpenRouter `:free` models** — no OpenAI, no credit card, $0 spend.
 
-- Integration is implemented
-- Local testing may be blocked without billing
-- Design is production-ready
+- Free models have per-IP rate limits (daily caps) and occasional 429s; the API returns a friendly retry message when that happens
+- The model is configurable via `AI_MODEL` in `.env.local` (default: `nvidia/nemotron-3.5-lightning:free`)
+- Falling back to the `openrouter/free` auto-router happens automatically on rate limits
 
 ---
 

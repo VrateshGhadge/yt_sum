@@ -46,6 +46,30 @@ function toReadableError(err) {
   return new AiError(rawMessage, { status, code: 'AI_ERROR' });
 }
 
+// OpenRouter `:free` model variants commonly return their chain-of-thought
+// inside the answer content ("Here's a thinking process: ..."). Strip the
+// reasoning preamble so downstream features get a clean answer.
+function stripThinkingPreamble(content) {
+  if (!content) return content;
+
+  const marker = /Here'?s a thinking process:\s*/i;
+  if (!marker.test(content)) return content.trim();
+
+  let body = content.replace(marker, '').trim();
+
+  // Reasoning steps are numbered markdown sections like "1.  **Label:**".
+  // The actual answer follows the last such section.
+  const sections = body.split(/\n(?=\d+\.\s+\*\*)/);
+  if (sections.length > 1) {
+    body = sections[sections.length - 1].trim();
+  }
+
+  // Drop a leading answer label ("Output:", "Final Answer:", ...) if present.
+  body = body.replace(/^(?:Output|Final Answer|Answer|Response)\s*:\s*/i, '').trim();
+
+  return body || content.trim();
+}
+
 async function postChatCompletion({ model, messages, temperature, maxTokens, timeoutMs }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -99,7 +123,7 @@ async function postChatCompletion({ model, messages, temperature, maxTokens, tim
   if (!content || !content.trim()) {
     throw new AiError('The AI returned an empty response.', { code: 'EMPTY_RESPONSE' });
   }
-  return content.trim();
+  return stripThinkingPreamble(content);
 }
 
 /**

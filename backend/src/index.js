@@ -23,6 +23,7 @@ app.use(
 // Routes
 const transcriptRoutes = require('./routes/transcriptRoutes');
 const summaryRoutes = require('./routes/summaryRoutes');
+const askRoutes = require('./routes/askRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 app.use(express.json());
@@ -33,6 +34,7 @@ app.use(globalLimiter);
 
 app.use('/api/transcript', transcriptRoutes);
 app.use('/api/summary', summaryRoutes);
+app.use('/api/ask', askRoutes);
 
 app.use(errorHandler);
 

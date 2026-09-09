@@ -131,7 +131,51 @@ async function getVideoTitle(videoId) {
   }
 }
 
-module.exports = { chunkTranscript, chunkWithOverlap, extractVideoId, getVideoTitle, sanitizeText, validateYouTubeUrl };
+// Group timed segments into passages of ~maxChars. Each passage carries its
+// segment span (startMs/endMs) so answers can cite exact timestamps.
+function chunkPassages(segments, maxChars = 2500) {
+  if (!Array.isArray(segments) || segments.length === 0) {
+    return [];
+  }
+
+  const passages = [];
+  let current = { text: '', segments: [], startMs: null, endMs: null };
+
+  for (const seg of segments) {
+    const segText = seg.text || '';
+    const wouldOverflow = current.text.length + (current.text ? 1 : 0) + segText.length > maxChars;
+
+    // A single oversized segment still gets its own passage (never drop it),
+    // but once a passage has content we flush on overflow.
+    if (wouldOverflow && current.segments.length > 0) {
+      passages.push(current);
+      current = { text: '', segments: [], startMs: null, endMs: null };
+    }
+
+    current.text += (current.text ? ' ' : '') + segText;
+    current.segments.push(seg);
+    if (current.startMs === null) current.startMs = seg.offsetMs;
+    current.endMs = (seg.offsetMs || 0) + (seg.durationMs || 0);
+  }
+
+  if (current.segments.length > 0) {
+    passages.push(current);
+  }
+
+  return passages;
+}
+
+// ms → "m:ss" or "h:mm:ss" for human-readable citations.
+function formatTimecode(ms) {
+  const totalSeconds = Math.floor((ms || 0) / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = (n) => String(n).padStart(2, '0');
+  return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
+}
+
+module.exports = { chunkPassages, chunkTranscript, chunkWithOverlap, extractVideoId, formatTimecode, getVideoTitle, sanitizeText, validateYouTubeUrl };
 
 
 

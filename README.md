@@ -56,6 +56,7 @@ Request → Auth → Transcript Service
 - Rate limiting
 - Centralized error handling
 - Free AI summaries via OpenRouter `:free` models (zero spend)
+- Per-user video history (`GET /api/history`, `GET/DELETE /api/history/:id`)
 
 ---
 

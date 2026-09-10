@@ -274,4 +274,123 @@ async function summarizeTranscript(text, { mode = 'concise', maxChunkChars = 100
   return { summary: combined };
 }
 
-module.exports = { AiError, chatCompletion, summarizeTranscript };
+// Robust JSON extraction from model output: trims fences (```json), finds the
+// outermost object, and parses it. Throws AiError on failure.
+function parseJson(content) {
+  if (!content || typeof content !== 'string') {
+    throw new AiError('The AI returned non-text output.', { code: 'BAD_RESPONSE' });
+  }
+
+  let str = content.trim();
+  const fenced = str.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced) str = fenced[1].trim();
+
+  const start = str.indexOf('{');
+  const end = str.lastIndexOf('}');
+  if (start === -1 || end === -1 || end < start) {
+    throw new AiError('The AI output contained no JSON object.', { code: 'BAD_RESPONSE' });
+  }
+
+  try {
+    return JSON.parse(str.slice(start, end + 1));
+  } catch {
+    throw new AiError('The AI returned invalid JSON.', { code: 'BAD_RESPONSE' });
+  }
+}
+
+// Very long transcripts are condensed via the (map-reduce) summarizer first so
+// notes/quiz generation stays within a single prompt.
+const GENERATION_MAX_CHARS = 100000;
+
+async function condenseForGeneration(text) {
+  if (text.length <= GENERATION_MAX_CHARS) return text;
+  const { summary } = await summarizeTranscript(text, { mode: 'detailed' });
+  return summary;
+}
+
+/**
+ * Generate bullet-point study notes from a transcript.
+ * Returns { notes } (markdown bullet string).
+ */
+async function generateNotes(text) {
+  if (!text || typeof text !== 'string' || !text.trim()) {
+    throw new AiError('No transcript provided for notes.', { code: 'NO_INPUT' });
+  }
+
+  const source = await condenseForGeneration(text);
+
+  const notes = await chatCompletion({
+    system:
+      'You create concise, well-organized study notes from a YouTube video transcript. ' +
+      'Use bullet points grouped under clear headings. Cover key concepts, definitions, and takeaways. ' +
+      'Respond with the notes only — no preamble.',
+    messages: [
+      { role: 'user', content: `Create study notes for this transcript:\n\n${source}` },
+    ],
+    temperature: 0.3,
+    maxTokens: 1500,
+  });
+
+  return { notes };
+}
+
+/**
+ * Generate quiz questions from a transcript.
+ * Returns { questions: [{ question, options[], answerIndex, explanation }] }.
+ */
+async function generateQuiz(text, count) {
+  if (!text || typeof text !== 'string' || !text.trim()) {
+    throw new AiError('No transcript provided for quiz generation.', { code: 'NO_INPUT' });
+  }
+
+  const desired = Math.min(Math.max(Number(count) || 5, 1), 10);
+  const source = await condenseForGeneration(text);
+
+  const raw = await chatCompletion({
+    system:
+      'You create quiz questions from a YouTube video transcript. ' +
+      'Respond with RAW JSON only, matching exactly this schema: ' +
+      '{"questions":[{"question":"...","options":["...","...","...","..."],"answerIndex":0,"explanation":"..."}]}. ' +
+      `Answer with exactly ${desired} questions. answerIndex is the 0-based index of the correct option. ` +
+      'options must have exactly 4 items. explanation briefly justifies the answer using the transcript.',
+    messages: [
+      { role: 'user', content: `Create ${desired} quiz questions from this transcript:\n\n${source}` },
+    ],
+    temperature: 0.4,
+    maxTokens: 2000,
+  });
+
+  const parsed = parseJson(raw);
+  const rawQuestions = Array.isArray(parsed?.questions) ? parsed.questions : null;
+  if (!rawQuestions || rawQuestions.length === 0) {
+    throw new AiError('The AI returned no quiz questions.', { code: 'BAD_RESPONSE' });
+  }
+
+  const questions = rawQuestions
+    .filter(
+      (q) =>
+        q &&
+        typeof q.question === 'string' &&
+        Array.isArray(q.options) &&
+        q.options.length >= 2 &&
+        Number.isInteger(q.answerIndex) &&
+        q.answerIndex >= 0 &&
+        q.answerIndex < q.options.length &&
+        typeof q.explanation === 'string'
+    )
+    .map((q) => ({
+      question: q.question.trim(),
+      options: q.options.map((o) => String(o).trim()),
+      answerIndex: q.answerIndex,
+      explanation: q.explanation.trim(),
+    }))
+    .slice(0, desired);
+
+  if (questions.length === 0) {
+    throw new AiError('The AI returned malformed quiz questions.', { code: 'BAD_RESPONSE' });
+  }
+
+  return { questions };
+}
+
+module.exports = { AiError, chatCompletion, generateNotes, generateQuiz, parseJson, summarizeTranscript };

@@ -1,5 +1,6 @@
 const { getTranscriptData } = require('../services/transcriptService');
 const { AiError, summarizeTranscript } = require('../services/aiService');
+const { saveSummarizedVideo } = require('../services/historyService');
 const { extractVideoId, getVideoTitle, validateYouTubeUrl } = require('../utils/transcript');
 
 const VALID_MODES = ['concise', 'detailed', 'bullets', 'keypoints'];
@@ -49,8 +50,32 @@ async function getSummary(req, res, next) {
 
         const { summary } = await summarizeTranscript(transcriptData.text, { mode });
 
+        // Persist to the user's history (best-effort — skipped when DB is down).
+        const durationMs = transcriptData.segments.length
+            ? Math.max(...transcriptData.segments.map((s) => (s.offsetMs || 0) + (s.durationMs || 0)))
+            : null;
+        let historyId = null;
+        try {
+            const record = await saveSummarizedVideo({
+                clerkId: req.auth.userId,
+                videoId,
+                videoUrl: youtubeUrl,
+                title: videoInfo?.title ?? null,
+                author: videoInfo?.author ?? null,
+                durationMs,
+                transcriptText: transcriptData.text,
+                summary,
+                summaryMode: mode,
+                segments: transcriptData.segments,
+            });
+            historyId = record?._id ? String(record._id) : null;
+        } catch (persistErr) {
+            console.warn('[history] failed to persist summary:', persistErr?.message);
+        }
+
         const data = {
             userId: req.auth.userId,
+            historyId,
             videoId,
             title: videoInfo?.title ?? null,
             author: videoInfo?.author ?? null,

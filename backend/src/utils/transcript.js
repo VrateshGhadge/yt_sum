@@ -175,7 +175,27 @@ function formatTimecode(ms) {
   return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
 }
 
-module.exports = { chunkPassages, chunkTranscript, chunkWithOverlap, extractVideoId, formatTimecode, getVideoTitle, sanitizeText, validateYouTubeUrl };
+// Resolve a video identifier from an API request body.
+// Accepts { videoId } and/or { youtubeUrl } (youtubeUrl wins when present).
+// Returns { videoId | null, error | null }.
+function resolveVideoId({ videoId, youtubeUrl } = {}) {
+  if (youtubeUrl) {
+    if (!validateYouTubeUrl(youtubeUrl)) {
+      return { videoId: null, error: 'Invalid YouTube URL' };
+    }
+    const id = extractVideoId(youtubeUrl);
+    if (!id) {
+      return { videoId: null, error: 'Unable to extract video ID' };
+    }
+    return { videoId: id, error: null };
+  }
+  if (videoId) {
+    return { videoId, error: null };
+  }
+  return { videoId: null, error: 'Provide a videoId or a youtubeUrl' };
+}
+
+module.exports = { chunkPassages, chunkTranscript, chunkWithOverlap, extractVideoId, formatTimecode, getVideoTitle, resolveVideoId, sanitizeText, validateYouTubeUrl };
 
 
 

@@ -2,32 +2,52 @@ const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 
 const TranscriptSchema = new Schema({
-    title: {
-        type: String
-    },
-
-    user: {
-        // Clerk userId (user_xxx) of the authenticated user
+    clerkId: {
         type: String,
+        required: true,
+        index: true
     },
-
-    // transcript_url: {  [ADD LATER]
-    //     type: String,
-    //     required: true
-    // },
-
+    title: {
+        type: String,
+        default: null
+    },
+    author: {
+        type: String,
+        default: null
+    },
     videoId: {
         type: String,
+        required: true
     },
-
     videoUrl: {
         type: String,
+        default: null
     },
-
-    duration: {
+    durationMs: {
         type: Number,
-    }
+        default: null
+    },
+    summaryMode: {
+        type: String,
+        default: 'concise'
+    },
+    transcriptText: {
+        type: String,
+        default: null
+    },
+    summary: {
+        type: String,
+        default: null
+    },
+    segments: [{
+        text: String,
+        offsetMs: Number,
+        durationMs: Number
+    }]
 
 }, { timestamps: true });
+
+// One entry per (user, video, mode) — re-summarizing refreshes it in place.
+TranscriptSchema.index({ clerkId: 1, videoId: 1, summaryMode: 1 }, { unique: true });
 
 module.exports = mongoose.model('Transcript', TranscriptSchema);

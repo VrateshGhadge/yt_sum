@@ -24,6 +24,9 @@ app.use(
 const transcriptRoutes = require('./routes/transcriptRoutes');
 const summaryRoutes = require('./routes/summaryRoutes');
 const askRoutes = require('./routes/askRoutes');
+const notesRoutes = require('./routes/notesRoutes');
+const quizRoutes = require('./routes/quizRoutes');
+const historyRoutes = require('./routes/historyRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 app.use(express.json());
@@ -35,6 +38,9 @@ app.use(globalLimiter);
 app.use('/api/transcript', transcriptRoutes);
 app.use('/api/summary', summaryRoutes);
 app.use('/api/ask', askRoutes);
+app.use('/api/notes', notesRoutes);
+app.use('/api/quiz', quizRoutes);
+app.use('/api/history', historyRoutes);
 
 app.use(errorHandler);
 

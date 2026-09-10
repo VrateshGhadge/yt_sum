@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Transcript = require('../models/transcript');
 const { AiError } = require('./aiService');
+const { DEFAULT_PARAGRAPH_MS, mergeSegmentsByDuration } = require('../utils/transcript');
 
 function dbReady() {
     return mongoose.connection.readyState === 1;
@@ -60,6 +61,13 @@ async function getHistoryRecord(clerkId, id) {
     if (!record) {
         throw new AiError('History record not found.', { status: 404, code: 'NOT_FOUND' });
     }
+
+    // Records saved before paragraph grouping hold raw ~2s caption lines —
+    // grouping on read (idempotent) keeps them consistent with new ones.
+    if (Array.isArray(record.segments) && record.segments.length > 0) {
+        record.segments = mergeSegmentsByDuration(record.segments, DEFAULT_PARAGRAPH_MS);
+    }
+
     return record;
 }
 

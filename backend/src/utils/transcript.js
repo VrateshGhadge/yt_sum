@@ -134,6 +134,47 @@ function chunkWithOverlap(text, maxChars, overlapChars) {
   return chunks;
 }
 
+// Captions arrive as ~2s fragments; a paragraph spans at least this long.
+const DEFAULT_PARAGRAPH_MS = 30000;
+
+// Merge fine-grained caption lines into paragraphs. YouTube captions arrive as
+// ~2s fragments, which read poorly in the UI; a new paragraph starts once the
+// previous one spans at least minMs. Idempotent: re-running on already-merged
+// paragraphs leaves them unchanged.
+function mergeSegmentsByDuration(segments, minMs = DEFAULT_PARAGRAPH_MS) {
+  if (!Array.isArray(segments) || segments.length === 0) {
+    return [];
+  }
+
+  const merged = [];
+  let current = null;
+
+  for (const segment of segments) {
+    if (!current) {
+      current = {
+        text: segment.text || '',
+        offsetMs: segment.offsetMs || 0,
+        durationMs: segment.durationMs || 0,
+      };
+    } else {
+      current.text += ' ' + (segment.text || '');
+      current.durationMs = (segment.offsetMs || 0) + (segment.durationMs || 0) - current.offsetMs;
+    }
+
+    // Checked after every segment so a single long caption also flushes.
+    if (current.durationMs >= minMs) {
+      merged.push(current);
+      current = null;
+    }
+  }
+
+  if (current) {
+    merged.push(current);
+  }
+
+  return merged;
+}
+
 // Free + keyless YouTube video title lookup via oEmbed. Best-effort: returns
 // null on any failure so callers can degrade gracefully.
 async function getVideoTitle(videoId) {
@@ -219,7 +260,7 @@ function resolveVideoId({ videoId, youtubeUrl } = {}) {
   return { videoId: null, error: 'Provide a videoId or a youtubeUrl' };
 }
 
-module.exports = { chunkPassages, chunkTranscript, chunkWithOverlap, decodeHtmlEntities, extractVideoId, formatTimecode, getVideoTitle, resolveVideoId, sanitizeText, validateYouTubeUrl };
+module.exports = { DEFAULT_PARAGRAPH_MS, chunkPassages, chunkTranscript, chunkWithOverlap, decodeHtmlEntities, extractVideoId, formatTimecode, getVideoTitle, mergeSegmentsByDuration, resolveVideoId, sanitizeText, validateYouTubeUrl };
 
 
 

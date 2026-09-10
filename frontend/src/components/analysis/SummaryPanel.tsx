@@ -1,6 +1,7 @@
 import { SUMMARY_MODES } from '../../constants'
 import type { SummaryMode } from '../../types'
 import { MarkdownText } from '../MarkdownText'
+import { SegmentedToggleButton } from '../SegmentedToggleButton'
 
 export function SummaryPanel({
   summary,
@@ -16,16 +17,13 @@ export function SummaryPanel({
   return (
     <>
       <div className="mode-switch">
-        {SUMMARY_MODES.map((item) => (
-          <button
-            className={mode === item.value ? 'active' : ''}
-            onClick={() => onModeChange(item.value)}
-            disabled={Boolean(busy)}
-            key={item.value}
-          >
-            {item.label}
-          </button>
-        ))}
+        <SegmentedToggleButton
+          options={SUMMARY_MODES}
+          value={mode}
+          onChange={onModeChange}
+          disabled={Boolean(busy)}
+          ariaLabel="Summary mode"
+        />
       </div>
       <MarkdownText value={summary} />
     </>

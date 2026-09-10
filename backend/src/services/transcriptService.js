@@ -1,5 +1,5 @@
 const { fetchTranscript } = require('youtube-transcript-plus')
-const { decodeHtmlEntities, sanitizeText } = require('../utils/transcript')
+const { DEFAULT_PARAGRAPH_MS, decodeHtmlEntities, mergeSegmentsByDuration, sanitizeText } = require('../utils/transcript')
 
 async function fetchRawTranscript(videoId){
     if(!videoId){
@@ -24,7 +24,7 @@ async function getTranscriptData(videoId){
     }
 
     // Segment offset/duration are in SECONDS; convert to ms for the API.
-    const segments = transcript
+    const captionLines = transcript
         .map(item => ({
             text: sanitizeText(decodeHtmlEntities(item.text)),
             offsetMs: Math.round((item.offset || 0) * 1000),
@@ -32,10 +32,11 @@ async function getTranscriptData(videoId){
         }))
         .filter(segment => segment.text)
 
-    if(segments.length === 0){
+    if(captionLines.length === 0){
         return null
     }
 
+    const segments = mergeSegmentsByDuration(captionLines, DEFAULT_PARAGRAPH_MS)
     const text = sanitizeText(segments.map(segment => segment.text).join(' '))
 
     return { text, segments }

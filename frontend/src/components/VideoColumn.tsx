@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react'
+
 import { TimestampButton } from './TimestampButton'
 import { VideoPlayer } from './VideoPlayer'
 import type { VideoData } from '../types'
@@ -23,7 +23,6 @@ export function VideoColumn({
         <div className="transcript">
           <div className="transcript-heading">
             <span>Full transcript</span>
-            <Search size={16} />
           </div>
           {video.timestamps.map((segment, index) => (
             <p key={index}>

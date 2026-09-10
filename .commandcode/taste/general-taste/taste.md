@@ -1,0 +1,15 @@
+# General taste
+- Prefers free, keyless, or no-billing solutions for AI/transcription dependencies where possible (YouTube captions via keyword-free services, free LLM tiers) over paid API keys. Confidence: 0.7
+- Prefers solutions that add zero new npm dependencies (reusing already-installed SDKs pointed at alternative endpoints) over introducing new packages. Confidence: 0.7
+- Values provider abstraction in AI-service code generally (env-driven model selection), BUT when committed to a single free provider (e.g., OpenRouter), prefers a lean, provider-specific implementation (plain `fetch` to that endpoint) over keeping a multi-provider switch that adds surface area. Confidence: 0.6
+- Prefers keeping code in language/runtime style consistent with the project (CommonJS to match the project). Confidence: 0.6
+- Prefers configuration to be env-driven rather than hardcoded (e.g., allowed CORS origins and server PORT read from environment with sensible defaults). Confidence: 0.55
+- Keeps secrets out of client-side bundles — no secret keys in frontend env or `VITE_`-prefixed variables (only publishable/public keys belong there). Confidence: 0.55
+- Wants to become self-sufficient: after the agent performs setup/infrastructure work, expects a written, plain-language, step-by-step guide (exact commands) for doing it themselves in future. Confidence: 0.6
+- When the agent makes a tooling/approach choice, wants the rationale explained plainly, including why it beats the obvious alternative the user names (e.g., Docker Compose vs. a native MongoDB/Compass install). Confidence: 0.55
+- Prefers a modular file structure organized by concern — components in a `components/` folder, types in a dedicated types module, hooks/constants in their own files — rather than a single large component file. Confidence: 0.8
+- Wants entry/container files kept as small and simple as possible, with every function that can live elsewhere extracted into its own module. Confidence: 0.75
+- When specifying a visual/theme change, expects it applied consistently across the whole app (every page and state), not just the screen being edited. Confidence: 0.55
+- Gives tightly scoped UI-change requests and expects them applied only to the specified location — when a shared component renders in multiple places, only the named instance should change and the others must keep their current behavior. Confidence: 0.55
+- Prefers the frontend isolated in its own top-level folder (e.g., `frontend/`) with its tooling and config (package.json, lockfile, tsconfig, vite/eslint config, .env.example) living inside it, leaving the backend and repo-level files untouched. Confidence: 0.7
+- Expects the product's single brand name to be used consistently and correctly across every user-facing surface — third-party configuration (e.g., the Clerk application name) and metadata such as the browser tab title included, not just in-app code. Confidence: 0.55

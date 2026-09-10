@@ -10,10 +10,21 @@ const app = express();
 const { clerkMiddleware } = require("@clerk/express");
 app.use(clerkMiddleware());
 
-// CORS
+// CORS — comma-separated CLIENT_ORIGIN env (defaults cover Vite's 5173/5174)
+const allowedOrigins = (process.env.CLIENT_ORIGIN || "http://localhost:5173,http://localhost:5174")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
 app.use(
     cors({
-        origin: "http://localhost:5173",
+        origin: (origin, callback) => {
+            // Allow same-origin/non-browser requests (no Origin header).
+            if (!origin || allowedOrigins.includes(origin)) {
+                return callback(null, true);
+            }
+            return callback(null, false);
+        },
         credentials: true,
         methods: ["GET", "PUT", "POST", "DELETE", "OPTIONS"],
         allowedHeaders: ["Content-Type", "Authorization"],
@@ -47,7 +58,7 @@ app.use(errorHandler);
 // Connect DB
 connectDB();
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server is running at ${PORT}`);
 });

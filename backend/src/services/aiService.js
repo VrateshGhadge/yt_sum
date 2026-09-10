@@ -230,6 +230,11 @@ async function summarizeTranscript(text, { mode = 'concise', maxChunkChars = 100
   const system = summarySystemFor(mode);
   const { instruction, temperature } = config;
 
+  // Free reasoning models emit their chain of thought inside the content, so the
+  // token budget must cover BOTH the reasoning and the answer — too small a
+  // budget yields truncated reasoning instead of a summary.
+  const singleShotBudget = mode === 'detailed' ? 3500 : 2500;
+
   // Single shot when it fits.
   if (text.length <= maxChunkChars) {
     const summary = await chatCompletion({
@@ -241,6 +246,7 @@ async function summarizeTranscript(text, { mode = 'concise', maxChunkChars = 100
         },
       ],
       temperature,
+      maxTokens: singleShotBudget,
     });
     return { summary };
   }
@@ -254,7 +260,7 @@ async function summarizeTranscript(text, { mode = 'concise', maxChunkChars = 100
       messages: [
         { role: 'user', content: `Summarize this transcript excerpt in 2-3 sentences.\n\n${chunk}` },
       ],
-      maxTokens: 512,
+      maxTokens: 900,
       temperature,
     });
     excerptSummaries.push(s);
@@ -269,6 +275,7 @@ async function summarizeTranscript(text, { mode = 'concise', maxChunkChars = 100
       },
     ],
     temperature,
+    maxTokens: singleShotBudget,
   });
 
   return { summary: combined };
@@ -328,7 +335,7 @@ async function generateNotes(text) {
       { role: 'user', content: `Create study notes for this transcript:\n\n${source}` },
     ],
     temperature: 0.3,
-    maxTokens: 1500,
+    maxTokens: 2500,
   });
 
   return { notes };
@@ -357,7 +364,7 @@ async function generateQuiz(text, count) {
       { role: 'user', content: `Create ${desired} quiz questions from this transcript:\n\n${source}` },
     ],
     temperature: 0.4,
-    maxTokens: 2000,
+    maxTokens: 2500,
   });
 
   const parsed = parseJson(raw);

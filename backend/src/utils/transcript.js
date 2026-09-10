@@ -31,6 +31,30 @@ function validateYouTubeUrl(url){
     return url.includes('youtube.com') || url.includes('youtu.be');
 }
 
+// Decode HTML entities that YouTube captions contain (e.g. "I&#39;m", "&gt;&gt;").
+const NAMED_ENTITIES = {
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
+  hellip: '…', mdash: '—', ndash: '–',
+  lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”',
+};
+
+function decodeHtmlEntities(text) {
+  if (!text || typeof text !== 'string') {
+    return text;
+  }
+
+  return text.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (match, entity) => {
+    if (entity[0] === '#') {
+      const isHex = entity[1] === 'x' || entity[1] === 'X';
+      const code = parseInt(entity.slice(isHex ? 2 : 1), isHex ? 16 : 10);
+      return Number.isNaN(code) ? match : String.fromCodePoint(code);
+    }
+    return Object.prototype.hasOwnProperty.call(NAMED_ENTITIES, entity)
+      ? NAMED_ENTITIES[entity]
+      : match;
+  });
+}
+
 function sanitizeText(text) {
   if (!text || typeof text !== 'string') {
     return '';
@@ -195,7 +219,7 @@ function resolveVideoId({ videoId, youtubeUrl } = {}) {
   return { videoId: null, error: 'Provide a videoId or a youtubeUrl' };
 }
 
-module.exports = { chunkPassages, chunkTranscript, chunkWithOverlap, extractVideoId, formatTimecode, getVideoTitle, resolveVideoId, sanitizeText, validateYouTubeUrl };
+module.exports = { chunkPassages, chunkTranscript, chunkWithOverlap, decodeHtmlEntities, extractVideoId, formatTimecode, getVideoTitle, resolveVideoId, sanitizeText, validateYouTubeUrl };
 
 
 

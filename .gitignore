@@ -10,3 +10,7 @@ tmp/
 
 # Local test files
 backend/src/services/testWhisper.js
+
+# Frontend build artifacts
+dist/
+*.tsbuildinfo

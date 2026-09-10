@@ -1,3 +1,4 @@
+const { getAuth } = require('@clerk/express')
 const { getTranscriptByVideoId } = require('../services/transcriptService')
 const { extractVideoId, validateYouTubeUrl } = require('../utils/transcript')
 
@@ -46,7 +47,7 @@ async function getTranscript(req, res){
         return res.status(200).json({
             success: true,
             data: {
-                userId: req.auth.userId,
+                userId: getAuth(req).userId,
                 videoId,
                 transcript
             }

@@ -1,3 +1,4 @@
+const { getAuth } = require('@clerk/express');
 const { getTranscriptData } = require('../services/transcriptService');
 const { AiError, generateNotes } = require('../services/aiService');
 const { getVideoTitle, resolveVideoId } = require('../utils/transcript');
@@ -24,7 +25,7 @@ async function getNotes(req, res, next) {
         return res.status(200).json({
             success: true,
             data: {
-                userId: req.auth.userId,
+                userId: getAuth(req).userId,
                 videoId: id,
                 title: videoInfo?.title ?? null,
                 author: videoInfo?.author ?? null,

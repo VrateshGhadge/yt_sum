@@ -1,0 +1,21 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: ytsum-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  # Fixed name (not prefixed by the compose project) so every machine and every
+  # checkout reuses the same volume — data survives `docker compose down`.
+  mongo-data:
+    name: ytsum-mongo-data

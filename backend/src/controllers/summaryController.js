@@ -1,3 +1,4 @@
+const { getAuth } = require('@clerk/express');
 const { getTranscriptData } = require('../services/transcriptService');
 const { AiError, summarizeTranscript } = require('../services/aiService');
 const { saveSummarizedVideo } = require('../services/historyService');
@@ -57,7 +58,7 @@ async function getSummary(req, res, next) {
         let historyId = null;
         try {
             const record = await saveSummarizedVideo({
-                clerkId: req.auth.userId,
+                clerkId: getAuth(req).userId,
                 videoId,
                 videoUrl: youtubeUrl,
                 title: videoInfo?.title ?? null,
@@ -74,7 +75,7 @@ async function getSummary(req, res, next) {
         }
 
         const data = {
-            userId: req.auth.userId,
+            userId: getAuth(req).userId,
             historyId,
             videoId,
             title: videoInfo?.title ?? null,

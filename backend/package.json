@@ -17,6 +17,6 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "mongoose": "^9.0.1",
-    "youtube-transcript": "^1.2.1"
+    "youtube-transcript-plus": "^2.0.1"
   }
 }

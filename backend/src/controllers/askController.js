@@ -1,3 +1,4 @@
+const { getAuth } = require('@clerk/express');
 const { answerQuestion } = require('../services/qaService');
 const { AiError } = require('../services/aiService');
 const { extractVideoId, validateYouTubeUrl } = require('../utils/transcript');
@@ -43,7 +44,7 @@ async function askQuestion(req, res, next) {
         return res.status(200).json({
             success: true,
             data: {
-                userId: req.auth.userId,
+                userId: getAuth(req).userId,
                 videoId: id,
                 question: question.trim(),
                 answer,

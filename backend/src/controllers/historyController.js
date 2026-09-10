@@ -1,9 +1,10 @@
+const { getAuth } = require('@clerk/express');
 const { AiError } = require('../services/aiService');
 const { listHistory, getHistoryRecord, deleteHistoryRecord } = require('../services/historyService');
 
 async function getHistory(req, res, next) {
     try {
-        const items = await listHistory(req.auth.userId, { limit: req.query.limit });
+        const items = await listHistory(getAuth(req).userId, { limit: req.query.limit });
         return res.status(200).json({
             success: true,
             data: { items }
@@ -18,7 +19,7 @@ async function getHistory(req, res, next) {
 
 async function getHistoryItem(req, res, next) {
     try {
-        const record = await getHistoryRecord(req.auth.userId, req.params.id);
+        const record = await getHistoryRecord(getAuth(req).userId, req.params.id);
         return res.status(200).json({ success: true, data: record });
     } catch (err) {
         if (err instanceof AiError) {
@@ -30,7 +31,7 @@ async function getHistoryItem(req, res, next) {
 
 async function deleteHistoryItem(req, res, next) {
     try {
-        await deleteHistoryRecord(req.auth.userId, req.params.id);
+        await deleteHistoryRecord(getAuth(req).userId, req.params.id);
         return res.status(200).json({ success: true, message: 'Record deleted' });
     } catch (err) {
         if (err instanceof AiError) {

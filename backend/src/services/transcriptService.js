@@ -1,12 +1,14 @@
-const {YoutubeTranscript} = require('youtube-transcript')
-const { sanitizeText } = require('../utils/transcript')
+const { fetchTranscript } = require('youtube-transcript-plus')
+const { decodeHtmlEntities, sanitizeText } = require('../utils/transcript')
 
 async function fetchRawTranscript(videoId){
     if(!videoId){
         return null
     }
     try{
-        return await YoutubeTranscript.fetchTranscript(videoId)
+        // youtube-transcript-plus solves YouTube's PoToken requirement, which
+        // makes the older youtube-transcript package return empty results.
+        return await fetchTranscript(videoId)
     }catch(err){
         //console.log('Transcript fetch error:', err?.message || err);
         return null
@@ -21,17 +23,22 @@ async function getTranscriptData(videoId){
         return null
     }
 
-    const text = sanitizeText(transcript.map(item => item.text).join(' '));
-
+    // Segment offset/duration are in SECONDS; convert to ms for the API.
     const segments = transcript
         .map(item => ({
-            text: sanitizeText(item.text),
-            offsetMs: item.offset,      // ms from start of video
-            durationMs: item.duration   // ms
+            text: sanitizeText(decodeHtmlEntities(item.text)),
+            offsetMs: Math.round((item.offset || 0) * 1000),
+            durationMs: Math.round((item.duration || 0) * 1000)
         }))
-        .filter(segment => segment.text);
+        .filter(segment => segment.text)
 
-    return { text, segments };
+    if(segments.length === 0){
+        return null
+    }
+
+    const text = sanitizeText(segments.map(segment => segment.text).join(' '))
+
+    return { text, segments }
 }
 
 async function getTranscriptByVideoId(videoId){

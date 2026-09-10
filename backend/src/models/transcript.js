@@ -47,7 +47,7 @@ const TranscriptSchema = new Schema({
 
 }, { timestamps: true });
 
-// One entry per (user, video, mode) — re-summarizing refreshes it in place.
-TranscriptSchema.index({ clerkId: 1, videoId: 1, summaryMode: 1 }, { unique: true });
+// One entry per (user, video) — re-summarizing with any mode refreshes it.
+TranscriptSchema.index({ clerkId: 1, videoId: 1 }, { unique: true });
 
 module.exports = mongoose.model('Transcript', TranscriptSchema);

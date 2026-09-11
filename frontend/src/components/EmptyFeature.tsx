@@ -1,27 +1,25 @@
 import { ChevronRight } from 'lucide-react'
-import type { ReactNode } from 'react'
 
 export function EmptyFeature({
-  icon,
   title,
   text,
   action,
+  disabled,
   onClick,
 }: {
-  icon: ReactNode
   title: string
   text: string
   action: string
+  disabled?: boolean
   onClick: () => void
 }) {
   return (
-    <div className="empty-feature">
-      <span>{icon}</span>
-      <h2>{title}</h2>
+    <div className="empty">
+      <h3>{title}</h3>
       <p>{text}</p>
-      <button className="primary-button" onClick={onClick}>
+      <button type="button" className="btn" disabled={disabled} onClick={onClick}>
         {action}
-        <ChevronRight size={16} />
+        <ChevronRight size={14} aria-hidden="true" />
       </button>
     </div>
   )

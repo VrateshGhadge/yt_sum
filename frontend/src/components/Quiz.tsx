@@ -1,80 +1,102 @@
-import { ChevronRight } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Check, X } from 'lucide-react'
 import type { QuizQuestion } from '../types'
 
-export function Quiz({
-  questions,
-  onRestart,
-}: {
-  questions: QuizQuestion[]
-  onRestart: () => void
-}) {
+export function Quiz({ questions, onNewQuiz }: { questions: QuizQuestion[]; onNewQuiz: () => void }) {
   const [index, setIndex] = useState(0)
-  const [selected, setSelected] = useState<number | null>(null)
+  const [picked, setPicked] = useState<number | null>(null)
   const [submitted, setSubmitted] = useState(false)
   const [score, setScore] = useState(0)
-  const q = questions[index]
-  if (index === questions.length)
+  const legendRef = useRef<HTMLLegendElement>(null)
+
+  useEffect(() => {
+    legendRef.current?.focus()
+  }, [index])
+
+  if (!questions.length) {
+    return <p className="muted-note">This video did not return any questions.</p>
+  }
+
+  if (index === questions.length) {
+    const pct = Math.round((score / questions.length) * 100)
     return (
-      <div className="quiz-finish">
-        <span className="section-kicker">Quiz complete</span>
-        <strong>
-          {score} / {questions.length}
-        </strong>
-        <p>{Math.round((score / questions.length) * 100)}% correct</p>
-        <button className="primary-button" onClick={onRestart}>
-          Restart quiz
+      <div className="quiz-done">
+        <h3>Quiz complete</h3>
+        <p className="quiz-score">{score} / {questions.length}</p>
+        <p className="muted-note">{pct}% correct</p>
+        <button type="button" className="btn" onClick={() => { setIndex(0); setPicked(null); setSubmitted(false); setScore(0) }}>
+          Retake this quiz
+        </button>
+        <button type="button" className="btn-quiet quiz-new" onClick={onNewQuiz}>
+          Generate a new quiz
         </button>
       </div>
     )
+  }
+
+  const q = questions[index]
+  const right = picked === q.answerIndex
+
   function next() {
-    if (selected === q.answerIndex) setScore((value) => value + 1)
+    if (right) setScore((value) => value + 1)
     if (index === questions.length - 1) setIndex(questions.length)
     else {
       setIndex((value) => value + 1)
-      setSelected(null)
+      setPicked(null)
       setSubmitted(false)
     }
   }
+
   return (
     <div className="quiz">
-      <div className="quiz-meta">
-        Question {index + 1} of {questions.length}
-        <span>
-          <i style={{ width: `${((index + 1) / questions.length) * 100}%` }} />
-        </span>
+      <div className="quiz-progress">
+        <span>Question {index + 1} of {questions.length}</span>
+        <progress value={index + 1} max={questions.length} aria-label={`Question ${index + 1} of ${questions.length}`} />
       </div>
-      <h2>{q.question}</h2>
-      <div className="choices">
-        {q.options.map((option, optionIndex) => (
-          <button
-            key={option}
-            className={`${selected === optionIndex ? 'selected' : ''} ${submitted && optionIndex === q.answerIndex ? 'correct' : ''} ${submitted && selected === optionIndex && optionIndex !== q.answerIndex ? 'incorrect' : ''}`}
-            disabled={submitted}
-            onClick={() => setSelected(optionIndex)}
-          >
-            <b>{String.fromCharCode(65 + optionIndex)}</b>
-            {option}
-          </button>
-        ))}
-      </div>
+
+      <fieldset className="quiz-question">
+        <legend ref={legendRef} tabIndex={-1}>{q.question}</legend>
+        <div className="quiz-options">
+          {q.options.map((option, optionIndex) => {
+            const isAnswer = submitted && optionIndex === q.answerIndex
+            const isWrong = submitted && picked === optionIndex && optionIndex !== q.answerIndex
+            return (
+              <label
+                key={option}
+                className={`quiz-option${picked === optionIndex ? ' is-picked' : ''}${isAnswer ? ' is-correct' : ''}${isWrong ? ' is-wrong' : ''}`}
+              >
+                <input
+                  type="radio"
+                  name={`q-${index}`}
+                  value={optionIndex}
+                  checked={picked === optionIndex}
+                  disabled={submitted}
+                  onChange={() => setPicked(optionIndex)}
+                />
+                <span className="quiz-letter">{String.fromCharCode(65 + optionIndex)}</span>
+                <span className="quiz-copy">{option}</span>
+                {isAnswer && <Check size={14} className="quiz-mark" aria-label="Correct answer" />}
+                {isWrong && <X size={14} className="quiz-mark" aria-label="Your answer" />}
+              </label>
+            )
+          })}
+        </div>
+      </fieldset>
+
       {submitted && (
-        <div className="explanation">
-          <strong>{selected === q.answerIndex ? 'Correct' : 'Not quite'}</strong>
+        <div className="quiz-explanation" role="status">
+          <strong>{right ? 'Correct' : 'Not quite'}</strong>
           <p>{q.explanation}</p>
         </div>
       )}
+
       <button
-        className="primary-button"
-        disabled={selected === null}
+        type="button"
+        className="btn"
+        disabled={picked === null}
         onClick={() => (submitted ? next() : setSubmitted(true))}
       >
-        {submitted
-          ? index === questions.length - 1
-            ? 'See results'
-            : 'Next question'
-          : 'Submit answer'}
-        <ChevronRight size={16} />
+        {submitted ? (index === questions.length - 1 ? 'See results' : 'Next question') : 'Submit answer'}
       </button>
     </div>
   )

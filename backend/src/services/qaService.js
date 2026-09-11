@@ -89,7 +89,8 @@ async function answerQuestion({ videoId, question, topK = 3, maxPassageChars = 2
   const answer = await chatCompletion({
     system:
       'You answer questions about a YouTube video using ONLY the transcript excerpts provided. ' +
-      'If the answer is not covered by the excerpts, say so clearly. Be concise and direct.',
+      'At most 80 words. If the excerpts do not cover it, say so plainly. ' +
+      'Respond with the answer only — no preamble, no thinking, no restating the question.',
     messages: [
       {
         role: 'user',
@@ -97,7 +98,7 @@ async function answerQuestion({ videoId, question, topK = 3, maxPassageChars = 2
       },
     ],
     temperature: 0.2,
-    maxTokens: 512,
+    maxTokens: 350,
   });
 
   return { answer, citations };

@@ -1,30 +1,39 @@
 import { UserButton } from '@clerk/clerk-react'
-import { Clock3 } from 'lucide-react'
-import type { ReactNode } from 'react'
-import { Brand } from './Brand'
+import { HistoryIcon } from './HistoryIcon'
+import { Link } from './Link'
 
 export function AppHeader({
+  view,
   onHome,
-  onOpenHistory,
-  children,
 }: {
+  view: 'welcome' | 'video' | 'history'
   onHome: () => void
-  onOpenHistory: () => void
-  children?: ReactNode
 }) {
   return (
-    <header>
-      <button className="brand" onClick={onHome} aria-label="Go to home">
-        <Brand />
-      </button>
-      <nav>
-        <button onClick={onOpenHistory}>
-          <Clock3 size={18} />
-          History
-        </button>
-        {children}
-        <UserButton afterSignOutUrl="/" />
-      </nav>
+    <header className="app-header">
+      <div className="app-header-inner">
+        <Link
+          to="/"
+          className="header-brand"
+          onClick={onHome}
+          aria-label="Summify — new summary"
+        >
+          <img className="header-mark" src="/logo-mark-ink.png" alt="" />
+          <img className="header-word" src="/logo-wordmark.png" alt="Summify" />
+        </Link>
+
+        <nav className="app-nav">
+          <Link
+            to="/history"
+            className="nav-button"
+            aria-current={view === 'history' ? 'page' : undefined}
+          >
+            <HistoryIcon />
+            History
+          </Link>
+          <UserButton afterSignOutUrl="/" />
+        </nav>
+      </div>
     </header>
   )
 }

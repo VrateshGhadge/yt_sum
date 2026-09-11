@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "character": "A plain reading app: one link in, readable text out. No theme, no metaphor, no accent colour. Authority from weight, scale and spacing.",
+  "color": {
+    "strategy": "monochrome",
+    "paper": "#fdfdfd",
+    "sunken": "#f4f5f5",
+    "ink": { "value": "#131517", "ratioOnPaper": 17.99, "use": "primary text, buttons, active fills" },
+    "ink-2": { "value": "#3b4045", "ratioOnPaper": 10.3, "use": "reading text" },
+    "ink-3": { "value": "#555b60", "ratioOnPaper": 6.77, "use": "secondary text" },
+    "ink-4": { "value": "#676d73", "ratioOnPaper": 5.15, "use": "metadata" },
+    "ink-5": { "value": "#6a7076", "ratioOnPaper": 4.92, "ratioOnSunken": 4.59, "use": "placeholders; lightest value allowed for text" },
+    "mark": { "value": "#9aa0a6", "use": "decorative marks only, never text" },
+    "danger": { "value": "#9b2c22", "use": "errors and destructive hover only" },
+    "line": { "value": "rgba(19,21,23,0.10)", "use": "hairline rules" },
+    "line-2": { "value": "rgba(19,21,23,0.22)", "use": "control borders, section rules" },
+    "line-3": { "value": "rgba(19,21,23,0.42)", "use": "scrollbar hover" }
+  },
+  "typography": {
+    "family": "Inter Variable",
+    "package": "@fontsource-variable/inter",
+    "displayFace": null,
+    "secondFamily": null,
+    "scale": [
+      { "role": "screen-title", "size": "26px", "weight": 660, "tracking": "-0.03em" },
+      { "role": "welcome-headline", "size": "clamp(28px, 3.6vw, 44px)", "weight": 640, "tracking": "-0.032em" },
+      { "role": "pane-title", "size": "19px", "weight": 620, "tracking": "-0.02em" },
+      { "role": "reading", "size": "15px", "weight": 400, "lineHeight": 1.68 },
+      { "role": "micro-label", "size": "11px", "weight": 600, "tracking": "0.07em", "transform": "uppercase" },
+      { "role": "timestamp", "size": "11px", "family": "mono", "numeric": "tabular-nums" }
+    ],
+    "measure": {
+      "note": "Set in rem, not ch: ch measures the 0 glyph and overstates running prose.",
+      "prose": "30rem",
+      "transcript": "28rem",
+      "verifiedCharsPerLine": { "prose": 69, "transcript": 67 }
+    }
+  },
+  "form": {
+    "radius": "4px",
+    "shadows": "none",
+    "borders": "hairline rules replace borders and elevation",
+    "buttonMinHeight": "34px",
+    "buttons": { "btn": "ink fill, paper text", "btn-quiet": "transparent, hairline border, ink-2 text", "rule": "alternates — never stacked" },
+    "focus": "2px solid ink at 2px offset, :focus-visible only"
+  },
+  "layout": {
+    "maxWidth": "1680px",
+    "headerHeight": "52px",
+    "breakpoints": {
+      "1081px+": "two panes: video+transcript (1.15fr) beside summary (min 400px)",
+      "max-1080px": "stacked, analysis pane first",
+      "max-700px": "single column, 12px gutters, horizontally scrolling tabs"
+    }
+  },
+  "motion": {
+    "character": "almost none, deliberately",
+    "duration": "130-140ms",
+    "easing": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "authoredMoment": "the summarizing overlay — the page blurs behind a small status pill",
+    "reducedMotion": "all transitions and animation disabled"
+  },
+  "browserSurfaces": {
+    "selection": "inverted to ink",
+    "scrollbar": "9px hairline with hover state",
+    "caret": "inherits ink",
+    "clerk": "appearance overridden in main.tsx to remove Clerk's violet avatar and blue focus"
+  },
+  "antiReferences": [
+    "Cream ground + high-contrast serif + red accent (the stock AI-interface cluster)",
+    "Broadcast-studio metaphor with invented jargon for a simple summarizer",
+    "Centred hero with a feature row"
+  ]
+}

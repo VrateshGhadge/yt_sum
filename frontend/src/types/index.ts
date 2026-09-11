@@ -47,6 +47,14 @@ export interface HistoryItem {
 
 export type WorkspaceTab = 'summary' | 'ask' | 'notes' | 'quiz'
 
+/* The three screens, addressed. `notFound` exists so a mistyped URL can be sent
+   home rather than rendering a page its address does not describe. */
+export type Route =
+  | { name: 'welcome' }
+  | { name: 'history' }
+  | { name: 'video'; videoId: string }
+  | { name: 'notFound' }
+
 export interface Answer {
   answer: string
   citations: Citation[]

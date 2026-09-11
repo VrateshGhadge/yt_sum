@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { api } from '../api/client'
 import { videoUrl } from '../lib/format'
+import { navigate, useRoute } from '../lib/router'
 import { useVideoHistory } from './useVideoHistory'
 import type {
   Answer,
@@ -17,6 +18,7 @@ function errorMessage(error: unknown, fallback: string) {
 }
 
 export function useWorkspace(getToken: TokenGetter) {
+  const route = useRoute()
   const [url, setUrl] = useState('')
   const [video, setVideo] = useState<VideoData | null>(null)
   const [mode, setMode] = useState<SummaryMode>('concise')
@@ -32,15 +34,19 @@ export function useWorkspace(getToken: TokenGetter) {
   const [quiz, setQuiz] = useState<QuizQuestion[] | null>(null)
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState<Answer | null>(null)
-  const [historyOpen, setHistoryOpen] = useState(false)
 
-  const { history, reload: reloadHistory, remove: removeHistory } =
-    useVideoHistory(getToken)
+  const {
+    history,
+    status: historyStatus,
+    error: historyError,
+    reload: reloadHistory,
+    remove: removeHistory,
+  } = useVideoHistory(getToken)
 
   async function generate(event: FormEvent) {
     event.preventDefault()
     setError('')
-    setBusy('Analyzing video')
+    setBusy('Summarizing video')
     setAnalyzing(true)
     try {
       const result = await api.summary(getToken, {
@@ -53,7 +59,9 @@ export function useWorkspace(getToken: TokenGetter) {
       setNotes(null)
       setQuiz(null)
       setAnswer(null)
+      setSeek(0)
       reloadHistory()
+      navigate(`/video/${result.videoId}`)
     } catch (e) {
       setError(errorMessage(e, 'Unable to analyze this video.'))
     } finally {
@@ -86,6 +94,7 @@ export function useWorkspace(getToken: TokenGetter) {
 
   async function createNotes() {
     if (!video) return
+    setError('')
     setBusy('Creating notes')
     try {
       setNotes((await api.notes(getToken, video.videoId)).notes)
@@ -98,6 +107,7 @@ export function useWorkspace(getToken: TokenGetter) {
 
   async function createQuiz() {
     if (!video) return
+    setError('')
     setBusy('Creating quiz')
     try {
       setQuiz((await api.quiz(getToken, video.videoId)).questions)
@@ -111,6 +121,7 @@ export function useWorkspace(getToken: TokenGetter) {
   async function ask(event: FormEvent) {
     event.preventDefault()
     if (!video || !question.trim()) return
+    setError('')
     setBusy('Searching the video')
     try {
       setAnswer(await api.ask(getToken, { question, videoId: video.videoId }))
@@ -121,32 +132,79 @@ export function useWorkspace(getToken: TokenGetter) {
     }
   }
 
-  async function openHistory(item: HistoryItem) {
-    setBusy('Opening saved analysis')
-    try {
-      const record = await api.historyItem(getToken, item._id)
-      setVideo({
-        historyId: record._id,
-        videoId: record.videoId,
-        title: record.title,
-        author: record.author,
-        mode: record.summaryMode,
-        summary: record.summary,
-        transcript: record.transcriptText,
-        timestamps: record.segments,
-      })
-      setUrl(record.videoUrl || videoUrl(record.videoId))
-      setMode(record.summaryMode)
-      setHistoryOpen(false)
-    } catch (e) {
-      setError(errorMessage(e, 'Unable to open this analysis.'))
-    } finally {
-      setBusy(null)
-    }
-  }
+  // Load a saved record into the workspace. The route effect below calls this,
+  // so clicking a history row and pasting its URL take the same path.
+  const openRecord = useCallback(
+    async (item: HistoryItem) => {
+      setBusy('Opening saved video')
+      try {
+        const record = await api.historyItem(getToken, item._id)
+        setVideo({
+          historyId: record._id,
+          videoId: record.videoId,
+          title: record.title,
+          author: record.author,
+          mode: record.summaryMode,
+          summary: record.summary,
+          transcript: record.transcriptText,
+          timestamps: record.segments,
+        })
+        setUrl(record.videoUrl || videoUrl(record.videoId))
+        setMode(record.summaryMode)
+        // Everything below is per-video. Without clearing it, the previous
+        // video's answer, notes and quiz stay on screen against the new video.
+        setTab('summary')
+        setNotes(null)
+        setQuiz(null)
+        setAnswer(null)
+        setQuestion('')
+        setSeek(0)
+        setError('')
+      } catch (e) {
+        setError(errorMessage(e, 'Unable to open this video.'))
+      } finally {
+        setBusy(null)
+      }
+    },
+    [getToken],
+  )
 
+  // One load attempt per visit to a video URL: without this, a failed fetch would
+  // re-arm the effect and retry forever.
+  const attemptedRef = useRef<string | null>(null)
+
+  // Leaving the video route clears the guard, so a link that failed once is
+  // allowed to try again when the visitor comes back to it.
+  useEffect(() => {
+    if (route.name !== 'video') attemptedRef.current = null
+  }, [route])
+
+  useEffect(() => {
+    if (route.name !== 'video') return
+    if (video?.videoId === route.videoId) return
+    if (attemptedRef.current === route.videoId) return
+    // A deep link arrives before the list does; wait for it to settle so the
+    // video can be resolved by id.
+    if (historyStatus === 'idle' || historyStatus === 'loading') return
+
+    const item = history.find((entry) => entry.videoId === route.videoId)
+    if (!item) {
+      setError(
+        historyStatus === 'error'
+          ? historyError || 'Unable to load your history.'
+          : 'That video is not in your history.',
+      )
+      navigate('/', { replace: true })
+      return
+    }
+
+    attemptedRef.current = route.videoId
+    void openRecord(item)
+  }, [route, video?.videoId, history, historyStatus, historyError, openRecord])
+
+  // The confirmation happens in the row itself, so this only performs the
+  // delete once the visitor has confirmed there.
   async function deleteHistory(item: HistoryItem) {
-    if (!window.confirm(`Delete “${item.title || 'this video'}”?`)) return
     try {
       await removeHistory(item._id)
     } catch (e) {
@@ -154,10 +212,9 @@ export function useWorkspace(getToken: TokenGetter) {
     }
   }
 
-  // Brand click: always return to the main page, from any state.
+  // Brand click: reset the workspace. The link moves the URL.
   function goHome() {
     setVideo(null)
-    setHistoryOpen(false)
     setTab('summary')
     setUrl('')
     setError('')
@@ -188,14 +245,14 @@ export function useWorkspace(getToken: TokenGetter) {
     setQuestion,
     answer,
     history,
-    historyOpen,
-    setHistoryOpen,
+    historyStatus,
+    historyError,
+    reloadHistory,
     generate,
     changeSummaryMode,
     createNotes,
     createQuiz,
     ask,
-    openHistory,
     deleteHistory,
     goHome,
   }

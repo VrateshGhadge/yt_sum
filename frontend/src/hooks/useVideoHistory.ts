@@ -2,20 +2,27 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { HistoryItem, TokenGetter } from '../types'
 
+export type HistoryStatus = 'idle' | 'loading' | 'success' | 'error'
+
 export function useVideoHistory(getToken: TokenGetter) {
   const [history, setHistory] = useState<HistoryItem[]>([])
+  const [status, setStatus] = useState<HistoryStatus>('idle')
+  const [error, setError] = useState('')
 
-  const reload = useCallback(
-    () =>
-      api
-        .history(getToken)
-        .then(setHistory)
-        .catch(() => undefined),
-    [getToken],
-  )
+  const reload = useCallback(async () => {
+    setStatus('loading')
+    setError('')
+    try {
+      setHistory(await api.history(getToken))
+      setStatus('success')
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to load history.')
+      setStatus('error')
+    }
+  }, [getToken])
 
   useEffect(() => {
-    reload()
+    void reload()
   }, [reload])
 
   const remove = useCallback(
@@ -26,5 +33,5 @@ export function useVideoHistory(getToken: TokenGetter) {
     [getToken],
   )
 
-  return { history, reload, remove }
+  return { history, status, error, reload, remove, clearError: () => setError('') }
 }

@@ -1,61 +1,69 @@
-import { ChevronRight, History, Trash2 } from 'lucide-react'
-import { thumbnail } from '../lib/format'
+import { formatDate } from '../lib/format'
 import type { HistoryItem } from '../types'
+import { DeleteButton } from './DeleteButton'
+import { Link } from './Link'
 
 export function HistoryPage({
-  history,
-  onClose,
-  onOpen,
+  items,
+  status,
+  error,
   onDelete,
+  onRetry,
 }: {
-  history: HistoryItem[]
-  onClose: () => void
-  onOpen: (item: HistoryItem) => void
+  items: HistoryItem[]
+  status: 'idle' | 'loading' | 'success' | 'error'
+  error: string
   onDelete: (item: HistoryItem) => void
+  onRetry: () => void
 }) {
   return (
-    <main className="history-page">
-      <div className="history-heading">
+    <main className="history">
+      <div className="history-head">
         <div>
-          <span className="section-kicker">Your library</span>
           <h1>History</h1>
+          <p className="muted-note">Videos you have summarized, newest first.</p>
         </div>
-        <button className="back-button" onClick={onClose}>
-          Back to workspace
-        </button>
+        <Link to="/" className="btn btn-quiet">
+          Back to summarizer
+        </Link>
       </div>
-      {history.length ? (
-        <div className="history-list">
-          {history.map((item) => (
-            <article key={item._id}>
-              <img src={thumbnail(item.videoId)} alt="" />
-              <div>
-                <span>
-                  {item.summaryMode} ·{' '}
-                  {new Date(item.createdAt).toLocaleDateString()}
-                </span>
-                <h2>{item.title || 'Untitled YouTube video'}</h2>
-                <p>{item.author || 'YouTube'}</p>
-              </div>
-              <button onClick={() => onOpen(item)}>
-                Open <ChevronRight size={16} />
-              </button>
-              <button
-                className="delete"
-                aria-label="Delete analysis"
-                onClick={() => onDelete(item)}
-              >
-                <Trash2 size={16} />
-              </button>
-            </article>
-          ))}
+
+      {status === 'loading' && <p className="muted-note">Loading…</p>}
+
+      {status === 'error' && (
+        <div className="history-error" role="alert">
+          <p>{error || 'Could not load your history.'}</p>
+          <button type="button" className="btn btn-quiet" onClick={onRetry}>Try again</button>
         </div>
-      ) : (
+      )}
+
+      {status === 'success' && items.length === 0 && (
         <div className="history-empty">
-          <History size={28} />
-          <h2>No videos yet</h2>
-          <p>Your analyzed videos will appear here.</p>
+          <h2>Nothing here yet</h2>
+          <p>Videos you summarize will be listed here so you can reopen them.</p>
         </div>
+      )}
+
+      {status === 'success' && items.length > 0 && (
+        <ul className="history-list">
+          {items.map((item) => (
+            <li key={item._id} className="history-row">
+              <Link to={`/video/${item.videoId}`} className="history-open">
+                <img src={`https://i.ytimg.com/vi/${item.videoId}/mqdefault.jpg`} alt="" />
+                <span className="history-body">
+                  <span className="history-title">{item.title || 'Untitled video'}</span>
+                  <span className="history-meta">
+                    {item.author || 'YouTube'} · {item.summaryMode} · {formatDate(item.createdAt)}
+                  </span>
+                </span>
+              </Link>
+              <DeleteButton
+                label={`Delete ${item.title || 'this video'}`}
+                onConfirm={() => onDelete(item)}
+              />
+            </li>
+          ))}
+        </ul>
       )}
     </main>
   )

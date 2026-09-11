@@ -1,22 +1,55 @@
 /* eslint-disable react-refresh/only-export-components */
-import { ClerkProvider } from '@clerk/clerk-react'
+import { ClerkLoaded, ClerkLoading, ClerkProvider } from '@clerk/clerk-react'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
-import { InkWashBackground } from './components/InkWashBackground'
 import './styles.css'
 
 const key = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+
+/* Clerk's default surfaces (violet avatar, blue focus) are the only guaranteed
+   off-palette elements in the app, so they are themed to the same ink. */
+const clerkAppearance = {
+  variables: {
+    colorPrimary: '#131517',
+    colorText: '#131517',
+    colorTextSecondary: '#555b60',
+    colorBackground: '#fdfdfd',
+    colorInputBackground: '#fdfdfd',
+    colorInputText: '#131517',
+    borderRadius: '4px',
+    fontFamily: '"Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif',
+  },
+  elements: {
+    avatarBox: { width: '33px', height: '33px' },
+    userButtonAvatarBox: { width: '33px', height: '33px' },
+    userButtonPopoverCard: { borderRadius: '4px' },
+  },
+}
+
 function SetupScreen() {
-  return <main className="signed-out"><div><img className="welcome-mark" src="/logo-yt-sum.png" alt="" /><img className="signed-out-wordmark" src="/logo-txt.png" alt="Summify" /><p>Add your Clerk key in <code>frontend/.env.local</code> to open the workspace.</p><pre>VITE_CLERK_PUBLISHABLE_KEY=pk_test_...{`\n`}VITE_API_BASE_URL=http://localhost:3000</pre></div></main>
+  return (
+    <main className="gate">
+      <div>
+        <img className="welcome-mark" src="/logo-mark.png" alt="" />
+        <img className="signed-out-wordmark" src="/logo-wordmark.png" alt="Summify" />
+        <p>Add your Clerk key in <code>frontend/.env.local</code> to open the app.</p>
+        <pre>VITE_CLERK_PUBLISHABLE_KEY=pk_test_...{`\n`}VITE_API_BASE_URL=http://localhost:3000</pre>
+      </div>
+    </main>
+  )
 }
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <InkWashBackground />
     {key ? (
-      <ClerkProvider publishableKey={key}>
-        <App />
+      <ClerkProvider publishableKey={key} appearance={clerkAppearance}>
+        <ClerkLoading>
+          <main className="gate-load" role="status">Loading Summify</main>
+        </ClerkLoading>
+        <ClerkLoaded>
+          <App />
+        </ClerkLoaded>
       </ClerkProvider>
     ) : (
       <SetupScreen />

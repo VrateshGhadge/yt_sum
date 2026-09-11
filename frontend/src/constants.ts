@@ -1,4 +1,3 @@
-import { BookOpen, CircleHelp, FileText, MessageSquare } from 'lucide-react'
 import type { SummaryMode, WorkspaceTab } from './types'
 
 export const SUMMARY_MODES: { value: SummaryMode; label: string }[] = [
@@ -8,13 +7,10 @@ export const SUMMARY_MODES: { value: SummaryMode; label: string }[] = [
   { value: 'keypoints', label: 'Key points' },
 ]
 
-export const WORKSPACE_TABS: {
-  id: WorkspaceTab
-  label: string
-  icon: typeof FileText
-}[] = [
-  { id: 'summary', label: 'Summary', icon: FileText },
-  { id: 'ask', label: 'Ask AI', icon: MessageSquare },
-  { id: 'notes', label: 'Notes', icon: BookOpen },
-  { id: 'quiz', label: 'Quiz', icon: CircleHelp },
+/** The transcript is shown beside the video, so it is not a tab. */
+export const TABS: { id: WorkspaceTab; label: string }[] = [
+  { id: 'summary', label: 'Summary' },
+  { id: 'ask', label: 'Ask' },
+  { id: 'notes', label: 'Notes' },
+  { id: 'quiz', label: 'Quiz' },
 ]

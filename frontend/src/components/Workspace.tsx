@@ -1,26 +1,23 @@
-import { AnimatePresence, motion } from 'framer-motion'
-import { WORKSPACE_TABS } from '../constants'
+import { useEffect, useState } from 'react'
 import { useWorkspace } from '../hooks/useWorkspace'
+import { useRoute } from '../lib/router'
 import type { TokenGetter } from '../types'
-import { AskPanel } from './analysis/AskPanel'
-import { NotesPanel } from './analysis/NotesPanel'
-import { QuizPanel } from './analysis/QuizPanel'
-import { SummaryPanel } from './analysis/SummaryPanel'
 import { AppHeader } from './AppHeader'
 import { HistoryPage } from './HistoryPage'
-import { Loading } from './Loading'
 import { LoadingOverlay } from './LoadingOverlay'
 import { SearchForm } from './SearchForm'
-import { VideoColumn } from './VideoColumn'
+import { StatusBanner } from './StatusBanner'
 import { WelcomeScreen } from './WelcomeScreen'
+import { WorkspaceView } from './WorkspaceView'
 
 export function Workspace({ getToken }: { getToken: TokenGetter }) {
+  const [bannerDismissed, setBannerDismissed] = useState(false)
+  const route = useRoute()
   const {
     url,
     setUrl,
     video,
     mode,
-    setMode,
     includeTranscript,
     setIncludeTranscript,
     tab,
@@ -36,108 +33,76 @@ export function Workspace({ getToken }: { getToken: TokenGetter }) {
     setQuestion,
     answer,
     history,
-    historyOpen,
-    setHistoryOpen,
+    historyStatus,
+    historyError,
+    reloadHistory,
     generate,
     changeSummaryMode,
     createNotes,
     createQuiz,
     ask,
-    openHistory,
     deleteHistory,
     goHome,
   } = useWorkspace(getToken)
 
-  // The mode selector only makes sense once a video is open (in the header).
-  const searchFormProps = {
-    url,
-    mode,
-    busy,
-    onUrlChange: setUrl,
-    onModeChange: setMode,
-    onSubmit: generate,
-  }
+  // A dismissal belongs to the error it dismissed, not to the session.
+  useEffect(() => {
+    setBannerDismissed(false)
+  }, [route])
+
+  const view = route.name === 'video' ? 'video' : route.name === 'history' ? 'history' : 'welcome'
 
   return (
-    <div className="app-shell">
-      <AppHeader onHome={goHome} onOpenHistory={() => setHistoryOpen(true)}>
-        {video ? (
-          <div className="header-search">
-            <SearchForm {...searchFormProps} />
-          </div>
-        ) : null}
-      </AppHeader>
-      {historyOpen ? (
+    <div className="app">
+      <AppHeader view={view} onHome={goHome} />
+      <StatusBanner
+        message={bannerDismissed ? '' : error}
+        onDismiss={() => setBannerDismissed(true)}
+      />
+
+      {route.name === 'history' ? (
         <HistoryPage
-          history={history}
-          onClose={() => setHistoryOpen(false)}
-          onOpen={openHistory}
+          items={history}
+          status={historyStatus}
+          error={historyError}
           onDelete={deleteHistory}
+          onRetry={() => void reloadHistory()}
         />
-      ) : video ? (
-        <main className="workspace-grid">
-          <VideoColumn video={video} seek={seek} onSeek={setSeek} />
-          <section className="analysis-column">
-            <div className="analysis-tabs">
-              {WORKSPACE_TABS.map(({ id, label, icon: Icon }) => (
-                <button
-                  key={id}
-                  className={tab === id ? 'selected' : ''}
-                  onClick={() => setTab(id)}
-                >
-                  <Icon size={15} />
-                  {label}
-                </button>
-              ))}
-            </div>
-            {busy && <Loading label={busy} />}
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={tab}
-                className="analysis-content"
-                initial={{ opacity: 0, y: 7 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -7 }}
-                transition={{ duration: 0.16 }}
-              >
-                {tab === 'summary' && (
-                  <SummaryPanel
-                    summary={video.summary}
-                    mode={mode}
-                    busy={busy}
-                    onModeChange={changeSummaryMode}
-                  />
-                )}
-                {tab === 'ask' && (
-                  <AskPanel
-                    question={question}
-                    answer={answer}
-                    busy={busy}
-                    onQuestionChange={setQuestion}
-                    onSubmit={ask}
-                    onSeek={setSeek}
-                  />
-                )}
-                {tab === 'notes' && (
-                  <NotesPanel notes={notes} onGenerate={createNotes} />
-                )}
-                {tab === 'quiz' && (
-                  <QuizPanel questions={quiz} onGenerate={createQuiz} />
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </section>
-        </main>
+      ) : route.name === 'video' ? (
+        video ? (
+          <WorkspaceView
+            video={video}
+            currentMs={seek}
+            onSeek={setSeek}
+            tab={tab}
+            onTabChange={setTab}
+            busy={busy}
+            summary={video.summary}
+            mode={mode}
+            onModeChange={changeSummaryMode}
+            question={question}
+            answer={answer}
+            onQuestionChange={setQuestion}
+            onAsk={ask}
+            notes={notes}
+            onGenerateNotes={createNotes}
+            quiz={quiz}
+            onGenerateQuiz={createQuiz}
+          />
+        ) : (
+          // A deep link resolves from history before the workspace can paint.
+          <main className="route-load" role="status">Opening saved video</main>
+        )
       ) : (
         <WelcomeScreen
           includeTranscript={includeTranscript}
           onIncludeTranscriptChange={setIncludeTranscript}
-          error={error}
         >
-          <SearchForm {...searchFormProps} showModeSelector={false} />
+          <SearchForm url={url} busy={busy} onUrlChange={setUrl} onSubmit={generate} />
         </WelcomeScreen>
       )}
-      {analyzing && <LoadingOverlay label="Analyzing video" />}
+
+      {analyzing && <LoadingOverlay label="Summarizing video" />}
     </div>
   )
 }

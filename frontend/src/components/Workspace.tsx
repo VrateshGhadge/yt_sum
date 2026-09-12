@@ -53,7 +53,7 @@ export function Workspace({ getToken }: { getToken: TokenGetter }) {
   const view = route.name === 'video' ? 'video' : route.name === 'history' ? 'history' : 'welcome'
 
   return (
-    <div className="app">
+    <div className="min-h-[100dvh]">
       <AppHeader view={view} onHome={goHome} />
       <StatusBanner
         message={bannerDismissed ? '' : error}
@@ -91,7 +91,9 @@ export function Workspace({ getToken }: { getToken: TokenGetter }) {
           />
         ) : (
           // A deep link resolves from history before the workspace can paint.
-          <main className="route-load" role="status">Opening saved video</main>
+          <main className="grid min-h-[40dvh] place-items-center text-[13px] text-ink-4" role="status">
+            Opening saved video
+          </main>
         )
       ) : (
         <WelcomeScreen

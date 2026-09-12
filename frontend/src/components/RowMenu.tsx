@@ -40,11 +40,11 @@ export function RowMenu({
   }, [open])
 
   return (
-    <div className="row-menu" ref={wrap}>
+    <div className="relative" ref={wrap}>
       <button
         ref={trigger}
         type="button"
-        className="row-menu-trigger"
+        className="grid h-[30px] w-[30px] place-items-center rounded-lg text-ink-4 transition-[color,background] duration-[140ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-sunken hover:text-ink"
         aria-label={`More actions for ${label}`}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -54,9 +54,12 @@ export function RowMenu({
       </button>
 
       {open && (
-        <div className="row-menu-list" role="menu">
+        <div
+          className="absolute right-0 top-[calc(100%+6px)] z-30 min-w-[168px] rounded-xl bg-paper p-[5px] shadow-[0_0_0_1px_rgba(26,24,21,0.07),0_12px_30px_-10px_rgba(26,24,21,0.24)]"
+          role="menu"
+        >
           <a
-            className="row-menu-item"
+            className="block w-full rounded-lg px-2.5 py-2 text-left text-[13px] text-ink-2 no-underline transition-colors duration-[120ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-sunken hover:text-ink"
             role="menuitem"
             href={videoUrl}
             target="_blank"
@@ -67,7 +70,7 @@ export function RowMenu({
           </a>
           <button
             type="button"
-            className="row-menu-item is-danger"
+            className="block w-full rounded-lg px-2.5 py-2 text-left text-[13px] text-danger transition-colors duration-[120ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-danger-wash"
             role="menuitem"
             onClick={() => {
               setOpen(false)

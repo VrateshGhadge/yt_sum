@@ -24,16 +24,22 @@ const VOICES = [
 ]
 
 const METRICS = [
-  { figure: '10K+', label: 'Active users' },
-  { figure: '50K+', label: 'Videos summarized' },
-  { figure: '4.9/5', label: 'User satisfaction' },
+  { figure: '10K+', label: 'Active users', stars: false },
+  { figure: '50K+', label: 'Videos summarized', stars: false },
+  { figure: '4.9/5', label: 'User satisfaction', stars: true },
 ]
 
 export function LandingProof() {
   return (
-    <section className="landing-section landing-proof" id="testimonials">
-      <div className="landing-voices">
-        <p className="landing-note landing-note-voices" aria-hidden="true">
+    <section
+      className="mx-auto grid w-[min(100%-48px,1520px)] scroll-mt-24 grid-cols-[minmax(0,1fr)_minmax(0,0.92fr)] items-center gap-14 pt-[88px] max-[1080px]:grid-cols-[minmax(0,1fr)] max-[1080px]:gap-11 max-[700px]:w-[min(100%-36px,1520px)] max-[700px]:pt-16"
+      id="testimonials"
+    >
+      <div className="relative pl-28 max-[1180px]:pl-0">
+        <p
+          className="absolute left-0 right-auto top-[26px] text-right font-hand text-[17px] leading-[1.4] text-ink-4 opacity-75 pointer-events-none max-[1340px]:hidden [&>svg]:ml-auto [&>svg]:mt-1.5 [&>svg]:block [&>svg]:h-12 [&>svg]:w-24"
+          aria-hidden="true"
+        >
           Learn
           <br />
           Smarter
@@ -45,15 +51,18 @@ export function LandingProof() {
           </svg>
         </p>
 
-        <ul className="landing-quotes">
+        <ul className="grid gap-[14px]">
           {VOICES.map(({ name, role, quote, photo }) => (
-            <li key={name} className="landing-quote">
-              <img src={photo} alt="" loading="lazy" />
+            <li
+              key={name}
+              className="flex items-center gap-[14px] rounded-full border border-line bg-card py-3 pl-3 pr-6 transition-shadow duration-[180ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:shadow-[0_12px_26px_-16px_rgba(26,24,21,0.22)] max-[700px]:rounded-2xl max-[700px]:p-3"
+            >
+              <img className="h-[46px] w-[46px] shrink-0 rounded-full bg-sunken object-cover" src={photo} alt="" loading="lazy" />
               <span>
-                <span className="landing-quote-text">“{quote}”</span>
-                <span className="landing-quote-who">
+                <span className="block text-[13px] leading-[1.45] text-ink-2">“{quote}”</span>
+                <span className="mt-1 flex items-baseline gap-2 text-[13px] font-[620] text-ink">
                   {name}
-                  <span>{role}</span>
+                  <span className="text-xs font-normal text-ink-4">{role}</span>
                 </span>
               </span>
             </li>
@@ -61,23 +70,23 @@ export function LandingProof() {
         </ul>
       </div>
 
-      <div className="landing-join">
-        <h2 className="landing-h2">
+      <div>
+        <h2 className="text-[clamp(26px,2.6vw,34px)] font-[680] leading-[1.15] tracking-[-0.03em] text-ink">
           Join thousands who
-          <span>are learning smarter.</span>
+          <span className="block text-accent">are learning smarter.</span>
         </h2>
-        <p className="landing-sub">
+        <p className="mt-2.5 max-w-[48ch] text-[15.5px] leading-[1.6] text-ink-3">
           Students, professionals, and creators use Summify to save time, understand complex topics,
           and turn videos into real knowledge.
         </p>
 
-        <dl className="landing-metrics">
-          {METRICS.map(({ figure, label }) => (
+        <dl className="mt-7 flex max-[700px]:flex-wrap max-[700px]:gap-y-4 [&>div]:px-[26px] [&>div+div]:border-l [&>div+div]:border-line-2 [&>div:first-child]:pl-0">
+          {METRICS.map(({ figure, label, stars }) => (
             <div key={label}>
-              <dt>
+              <dt className="flex items-center gap-[9px] text-[26px] font-bold tracking-[-0.03em] text-accent">
                 {figure}
-                {label === 'User satisfaction' ? (
-                  <span className="landing-stars" aria-hidden="true">
+                {stars ? (
+                  <span className="inline-flex gap-0.5 text-star" aria-hidden="true">
                     <Star size={15} fill="currentColor" />
                     <Star size={15} fill="currentColor" />
                     <Star size={15} fill="currentColor" />
@@ -86,7 +95,7 @@ export function LandingProof() {
                   </span>
                 ) : null}
               </dt>
-              <dd>{label}</dd>
+              <dd className="mt-px text-[13px] text-ink-4">{label}</dd>
             </div>
           ))}
         </dl>

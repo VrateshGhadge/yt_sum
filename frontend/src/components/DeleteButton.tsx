@@ -57,6 +57,11 @@ const circleMotion = {
   shown: { opacity: 1, scale: 1, transition: IN },
 }
 
+/* Sized to the app's 34px control so it sits with the rest of the row, and
+   chrome-free at rest — a filled tile at this size would read as a smudge. */
+const CIRCLE =
+  'grid h-6 w-6 place-items-center rounded-full bg-sunken transition-[background,color] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-paper focus-visible:outline-offset-[-2px]'
+
 function Circle({
   label,
   onClick,
@@ -71,7 +76,7 @@ function Circle({
   const reduced = useReducedMotion() ?? false
 
   return (
-    <motion.div className="delete-circle-wrap" variants={reduced ? undefined : circleMotion}>
+    <motion.div className="flex" variants={reduced ? undefined : circleMotion}>
       <motion.button
         type="button"
         aria-label={label}
@@ -79,7 +84,13 @@ function Circle({
         whileHover={reduced ? undefined : { scale: 1.03 }}
         whileTap={reduced ? undefined : { scale: 0.84 }}
         transition={PRESS}
-        className={tone ? `delete-circle is-${tone}` : 'delete-circle'}
+        /* Confirm is the one destructive affordance in the product, so it is the
+           only place the danger colour appears at rest. */
+        className={
+          tone === 'confirm'
+            ? `${CIRCLE} text-danger hover:text-danger`
+            : `${CIRCLE} text-ink-3 hover:text-ink`
+        }
       >
         <svg {...ICON} width="12" height="12" stroke="currentColor" strokeWidth="4">
           {children}
@@ -137,7 +148,7 @@ export function DeleteButton({
 
   return (
     <div
-      className="delete-button"
+      className="relative h-[34px] w-[34px] shrink-0 self-center rounded-lg max-[700px]:static"
       data-state={open ? 'open' : 'closed'}
       data-status={status}
       onKeyDown={(event) => {
@@ -156,7 +167,7 @@ export function DeleteButton({
         }}
         whileTap={reduced ? undefined : { scale: 0.94 }}
         transition={TAP}
-        className="delete-trigger"
+        className="relative z-10 grid h-[34px] w-[34px] place-items-center rounded-lg text-ink-4 transition-[color,background] duration-[140ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-sunken hover:text-ink"
       >
         <AnimatePresence mode="wait" initial={false}>
           {status === 'deleted' ? (
@@ -165,7 +176,7 @@ export function DeleteButton({
               {...ICON}
               width="16"
               height="16"
-              className="delete-done"
+              className="overflow-visible text-danger"
               strokeWidth="2.8"
               initial={{ opacity: 0, scale: 0.6 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -187,7 +198,7 @@ export function DeleteButton({
               height="16"
               stroke="currentColor"
               strokeWidth="2.4"
-              className="delete-bin"
+              className="overflow-visible"
               style={{ scale: settle }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -216,13 +227,20 @@ export function DeleteButton({
         {open && (
           <motion.div
             key="panel"
-            className="delete-panel"
+            /* Sits to the left of the tile, over the row's own background. On a
+               phone it covers the whole row instead. */
+            className="absolute right-[34px] top-0 z-20 flex h-[34px] w-[62px] items-center justify-center gap-1.5 rounded-lg bg-recess max-[700px]:inset-y-0 max-[700px]:left-0 max-[700px]:right-[34px] max-[700px]:h-auto max-[700px]:w-auto max-[700px]:rounded-none"
             variants={reduced ? undefined : panelMotion}
             initial="hidden"
             animate="shown"
             exit="hidden"
           >
-            <span aria-hidden="true" className="delete-panel-notch" />
+            {/* A tick of the tile's own colour, so the panel reads as sliding out
+                from behind it rather than appearing alongside it. */}
+            <span
+              aria-hidden="true"
+              className="absolute right-[-5px] top-1/2 h-2 w-1.5 -translate-y-1/2 bg-recess [clip-path:polygon(0_0,100%_50%,0_100%)] max-[700px]:hidden"
+            />
             <Circle label="Confirm delete" tone="confirm" onClick={() => resolve('deleted')}>
               <path d="M4 12.5 9.5 18 20 7" />
             </Circle>

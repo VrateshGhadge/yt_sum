@@ -19,6 +19,9 @@ const TAB_ICONS = {
   quiz: GraduationCap,
 } as const
 
+const TAB =
+  'inline-flex h-[38px] items-center gap-2 rounded-t-[10px] border-b-2 border-transparent px-3 text-[13px] font-[550] text-ink-4 transition-[color,background] duration-[140ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-sunken hover:text-ink-2 aria-selected:border-b-accent aria-selected:bg-sunken aria-selected:text-ink aria-selected:[&>svg]:text-accent max-[700px]:flex-none'
+
 export function WorkspaceView({
   video,
   currentMs,
@@ -77,8 +80,14 @@ export function WorkspaceView({
   }
 
   return (
-    <main className="workspace" id="main-content">
-      <Link to="/history" className="workspace-back">
+    <main
+      className="mx-auto grid w-[min(100%,1440px)] min-h-[calc(100dvh-var(--header-h))] grid-cols-[minmax(0,1fr)_minmax(420px,1.04fr)] items-start gap-x-[22px] gap-y-4 rounded-b-[18px] bg-paper px-6 pb-11 pt-[15px] max-[1080px]:min-h-0 max-[1080px]:grid-cols-[minmax(0,1fr)] max-[1080px]:px-[18px] max-[1080px]:pb-9 max-[1080px]:pt-3.5 max-[700px]:gap-[13px] max-[700px]:rounded-b-[14px] max-[700px]:px-3 max-[700px]:pb-7"
+      id="main-content"
+    >
+      <Link
+        to="/history"
+        className="col-span-full inline-flex h-[30px] items-center justify-self-start gap-2 self-start rounded-full border border-line-2 bg-card py-0 pl-[11px] pr-[13px] text-[12.5px] font-medium text-ink-2 no-underline transition-[border-color,color] duration-[140ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-line-3 hover:text-ink max-[1080px]:order-[-2]"
+      >
         <ArrowLeft size={15} aria-hidden="true" />
         Back to history
       </Link>
@@ -93,8 +102,15 @@ export function WorkspaceView({
         onSeek={onSeek}
       />
 
-      <section className="analysis-pane" aria-label="Summary and study tools">
-        <div className="tabs" role="tablist" aria-label="Views">
+      <section
+        className="min-w-0 overflow-hidden rounded-2xl border border-line bg-card max-[1080px]:order-[-1] max-[700px]:rounded-[14px]"
+        aria-label="Summary and study tools"
+      >
+        <div
+          className="flex gap-1 border-b border-line px-3.5 pt-2.5 max-[700px]:overflow-x-auto max-[700px]:px-2.5 max-[700px]:pt-2 max-[700px]:[scrollbar-width:none] max-[700px]:[&::-webkit-scrollbar]:hidden"
+          role="tablist"
+          aria-label="Views"
+        >
           {TABS.map(({ id, label }, index) => {
             const Icon = TAB_ICONS[id]
             return (
@@ -107,7 +123,7 @@ export function WorkspaceView({
                 aria-selected={tab === id}
                 aria-controls={`panel-${id}`}
                 tabIndex={tab === id ? 0 : -1}
-                className={tab === id ? 'is-on' : ''}
+                className={TAB}
                 onClick={() => onTabChange(id)}
                 onKeyDown={(event) => move(event, index)}
               >
@@ -125,7 +141,7 @@ export function WorkspaceView({
           role="tabpanel"
           aria-labelledby={`tab-${tab}`}
           tabIndex={-1}
-          className="panel"
+          className="px-[18px] pb-[26px] pt-[18px] focus-visible:outline-offset-[-2px] max-[700px]:px-3.5 max-[700px]:pb-5 max-[700px]:pt-[15px] [&>*:first-child]:mt-0"
         >
           {tab === 'summary' && (
             <SummaryPanel

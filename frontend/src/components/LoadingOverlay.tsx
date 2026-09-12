@@ -20,7 +20,7 @@ function Elapsed() {
   // Hidden from assistive tech — the label names the state, and a value that
   // changed every second would be announced over and over.
   return (
-    <span className="overlay-timer" aria-hidden="true">
+    <span className="text-xs text-ink-4 [font-variant-numeric:tabular-nums]" aria-hidden="true">
       {formatElapsed(elapsedMs)}
     </span>
   )
@@ -34,29 +34,34 @@ export function LoadingOverlay({ label }: { label: string }) {
   const still = useReducedMotion()
 
   return (
-    <div className="overlay" role="status" aria-live="polite" aria-label={label}>
+    <div
+      className="fixed inset-0 z-[60] grid animate-fade content-center justify-items-center gap-[14px] bg-[rgba(253,253,253,0.55)] backdrop-blur-[9px] backdrop-saturate-[0.95]"
+      role="status"
+      aria-live="polite"
+      aria-label={label}
+    >
       <motion.div
-        className="island"
+        className="flex h-[30px] items-center gap-[11px] rounded-full bg-ink px-[15px]"
         animate={still ? { width: 92 } : { width: [92, 124, 92] }}
         transition={still ? { duration: 0 } : { duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
       >
         <motion.span
-          className="island-dot"
+          className="h-[5px] w-[5px] rounded-full bg-paper"
           animate={still ? { opacity: 1 } : { opacity: [0.35, 1, 0.35] }}
           transition={still ? { duration: 0 } : { duration: 1.1, repeat: Infinity, ease: 'easeInOut' }}
         />
-        <span className="island-wave" aria-hidden="true">
+        <span className="flex h-[9px] items-center gap-1" aria-hidden="true">
           {[0, 1, 2].map((i) => (
             <motion.span
               key={i}
-              className="island-bar"
+              className="w-[2px] rounded-full bg-mark"
               animate={still ? { height: 5 } : { height: [3, 9, 3] }}
               transition={still ? { duration: 0 } : { duration: 0.8, repeat: Infinity, ease: 'easeInOut', delay: i * 0.15 }}
             />
           ))}
         </span>
       </motion.div>
-      <span className="overlay-label">
+      <span className="flex items-baseline gap-[9px] text-[13px] text-ink-3">
         {label}
         <Elapsed />
       </span>

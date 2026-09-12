@@ -10,7 +10,14 @@ const COLLAPSED_LINES = 4
 
 /* Three subjects fit the row beside the title; the rest wait behind the +. */
 const VISIBLE_TOPICS = 3
-const TOPIC_TONES = ['sky', 'clay', 'plum', 'gold'] as const
+const TOPIC_TONES = [
+  'bg-chip-sky-wash text-chip-sky',
+  'bg-chip-clay-wash text-chip-clay',
+  'bg-chip-plum-wash text-chip-plum',
+  'bg-gold-wash text-gold',
+]
+
+const TAG = 'inline-flex h-[22px] items-center rounded-full px-2.5 text-[11.5px] font-medium'
 
 /** The video, its title and source, and the timestamped transcript. */
 export function VideoPane({
@@ -58,8 +65,8 @@ export function VideoPane({
   const shownTopics = allTopics ? topics : topics.slice(0, VISIBLE_TOPICS)
 
   return (
-    <div className="video-pane">
-      <div className="video-frame">
+    <div className="min-w-0 pb-[26px] max-[1080px]:pb-1.5">
+      <div className="aspect-video w-full overflow-hidden rounded-xl bg-[#12100e]">
         {playing ? (
           <iframe
             ref={frame}
@@ -68,17 +75,28 @@ export function VideoPane({
             src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&origin=${encodeURIComponent(window.location.origin)}&rel=0&playsinline=1`}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
+            className="block h-full w-full border-0"
           />
         ) : (
           <button
             type="button"
-            className="video-poster"
+            className="group relative block h-full w-full cursor-pointer border-0 bg-[#12100e] p-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             onClick={() => setPlaying(true)}
             aria-label={`Play ${title || 'video'}`}
           >
-            <img src={`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`} alt="" />
-            <span className="video-play" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+            <img
+              className="block h-full w-full object-cover"
+              src={`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`}
+              alt=""
+            />
+            <span className="absolute inset-0 grid place-items-center text-paper" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                width="22"
+                height="22"
+                fill="currentColor"
+                className="h-[54px] w-[54px] rounded-full bg-[rgba(26,24,21,0.78)] p-4 transition-colors duration-[140ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:bg-ink"
+              >
                 <path d="M8 5v14l11-7z" />
               </svg>
             </span>
@@ -86,29 +104,31 @@ export function VideoPane({
         )}
       </div>
 
-      <h1 className="video-title">{title || 'Untitled video'}</h1>
-      <p className="video-meta">
-        <User size={13} aria-hidden="true" />
+      <h1 className="mt-3.5 text-[19px] font-[620] leading-[1.28] tracking-[-0.022em] text-ink [overflow-wrap:anywhere]">
+        {title || 'Untitled video'}
+      </h1>
+      <p className="mt-[7px] flex items-center gap-2 text-[12.5px] text-ink-4">
+        <User className="shrink-0" size={13} aria-hidden="true" />
         {author || 'YouTube'}
         {createdAt ? (
           <>
-            <span className="video-meta-dot" aria-hidden="true" />
+            <span className="h-[3px] w-[3px] rounded-full bg-mark" aria-hidden="true" />
             {formatDate(createdAt)}
           </>
         ) : null}
       </p>
 
       {topics.length > 0 && (
-        <div className="video-chips">
+        <div className="mt-[11px] flex flex-wrap gap-1.5">
           {shownTopics.map((topic, index) => (
-            <span key={topic} className={`tag is-${TOPIC_TONES[index % TOPIC_TONES.length]}`}>
+            <span key={topic} className={`${TAG} ${TOPIC_TONES[index % TOPIC_TONES.length]}`}>
               {topic}
             </span>
           ))}
           {topics.length > VISIBLE_TOPICS ? (
             <button
               type="button"
-              className="chip-more"
+              className="grid h-[22px] w-[22px] place-items-center rounded-full border border-line-2 bg-card text-ink-4 transition-colors duration-[140ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-line-3 hover:text-ink"
               aria-expanded={allTopics}
               aria-label={allTopics ? 'Show fewer subjects' : 'Show every subject'}
               onClick={() => setAllTopics((value) => !value)}
@@ -119,22 +139,25 @@ export function VideoPane({
         </div>
       )}
 
-      <div className="card">
-        <div className="card-head">
-          <span className="card-icon" aria-hidden="true">
+      <div className="mt-4 rounded-[14px] border border-line bg-card px-3.5">
+        <div className="flex items-center gap-2.5 border-b border-line pb-[11px] pt-3">
+          <span
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-accent-wash text-accent"
+            aria-hidden="true"
+          >
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
               <path d="M14 2v4a2 2 0 0 0 2 2h4" />
               <path d="M16 13H8M16 17H8M10 9H8" />
             </svg>
           </span>
-          <span className="card-title">Transcript</span>
-          <span className="card-count">
+          <span className="flex-1 text-[13.5px] font-[620] text-ink">Transcript</span>
+          <span className="inline-flex items-center gap-[7px] text-[12.5px] text-ink-4">
             {transcript.length} sections
             {transcript.length > COLLAPSED_LINES ? (
               <button
                 type="button"
-                className="card-toggle"
+                className="grid h-[22px] w-[22px] place-items-center rounded-full text-ink-4 hover:bg-sunken hover:text-ink"
                 aria-expanded={expanded}
                 aria-label={expanded ? 'Collapse transcript' : 'Expand transcript'}
                 onClick={() => setExpanded((v) => !v)}
@@ -146,31 +169,43 @@ export function VideoPane({
         </div>
 
         {transcript.length === 0 ? (
-          <p className="muted-note">
+          <p className="flex items-center gap-[7px] py-3 text-[13px] leading-[1.55] text-ink-4">
             <VideoOff size={14} aria-hidden="true" />
             No transcript was saved for this video.
           </p>
         ) : (
           <>
-            <div className="transcript-list">
+            <div className="max-h-[520px] overflow-y-auto pb-[9px] pt-[5px]">
               {visible.map((line, index) => {
                 const next = transcript[index + 1]
-                const isCurrent =
-                  currentMs >= line.offsetMs && (!next || currentMs < next.offsetMs)
+                const isCurrent = currentMs >= line.offsetMs && (!next || currentMs < next.offsetMs)
                 return (
                   <button
                     key={index}
                     type="button"
-                    className={`transcript-line${isCurrent ? ' is-current' : ''}`}
+                    className={`grid w-full grid-cols-[44px_8px_minmax(0,1fr)] items-baseline gap-2.5 rounded-[9px] px-2 py-[9px] text-left transition-colors duration-[130ms] hover:bg-sunken max-[700px]:grid-cols-[40px_7px_minmax(0,1fr)] max-[700px]:gap-2 ${
+                      isCurrent ? 'bg-sunken' : ''
+                    }`}
                     onClick={() => {
                       // Cueing a moment is a deliberate play, so start the video.
                       setPlaying(true)
                       onSeek(line.offsetMs)
                     }}
                   >
-                    <span className="transcript-time">{formatTime(line.offsetMs)}</span>
-                    <span className="transcript-dot" aria-hidden="true" />
-                    <span className="transcript-text">{line.text}</span>
+                    <span
+                      className={`text-[11.5px] [font-variant-numeric:tabular-nums] ${isCurrent ? 'text-ink' : 'text-ink-4'}`}
+                    >
+                      {formatTime(line.offsetMs)}
+                    </span>
+                    <span
+                      className={`h-1.5 w-1.5 self-center rounded-full ${isCurrent ? 'bg-ink' : 'bg-mark'}`}
+                      aria-hidden="true"
+                    />
+                    <span
+                      className={`max-w-[28rem] text-[13.5px] leading-[1.62] [overflow-wrap:anywhere] ${isCurrent ? 'text-ink' : 'text-ink-2'}`}
+                    >
+                      {line.text}
+                    </span>
                   </button>
                 )
               })}
@@ -179,7 +214,7 @@ export function VideoPane({
             {transcript.length > COLLAPSED_LINES ? (
               <button
                 type="button"
-                className="transcript-more"
+                className="inline-flex items-center gap-1.5 pb-[11px] pt-[9px] text-[12.5px] font-medium text-ink-3 hover:text-ink"
                 onClick={() => setExpanded((v) => !v)}
               >
                 {expanded ? 'Show less' : 'Show more'}

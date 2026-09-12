@@ -52,7 +52,26 @@ function splitLead(text: string) {
   return { lead: stripInlineMd(match[1]), rest: stripInlineMd(match[2]) }
 }
 
-const DOTS = ['clay', 'sky', 'moss', 'plum', 'gold', 'rose'] as const
+/* The mark each row carries, cycling so a list can be scanned. */
+const DOTS = [
+  'bg-clay-wash text-clay',
+  'bg-sky-wash text-sky',
+  'bg-moss-wash text-moss',
+  'bg-plum-wash text-plum',
+  'bg-gold-wash text-gold',
+  'bg-rose-wash text-rose',
+]
+
+const BLOCK = 'grid gap-5 pt-4 max-[700px]:gap-[17px]'
+const HEAD_TITLE = 'text-[14.5px] font-[620] tracking-[-0.015em] text-ink'
+const HEAD_NOTE = 'mt-[3px] text-[12.5px] leading-[1.5] text-ink-4'
+const CARD_ICON = 'grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-accent-wash text-accent'
+const LEAD = 'block text-[13.5px] font-[620] text-ink'
+const TEXT = 'mt-0.5 block max-w-[30rem] text-[13.5px] leading-[1.6] text-ink-3'
+const FALLBACK = 'mt-[5px] max-w-[30rem] text-[13.5px] leading-[1.62] text-ink-3'
+const NUM = 'grid h-6 w-6 place-items-center rounded-[7px] bg-sunken text-[11.5px] font-[620] text-accent'
+const TIME = 'shrink-0 whitespace-nowrap rounded-md bg-sunken px-2 py-0.5 text-[11px] text-ink-4 [font-variant-numeric:tabular-nums]'
+const DIVIDED = '[&>li+li]:border-t [&>li+li]:border-line'
 
 function CopyButton({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = useState(false)
@@ -60,7 +79,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   return (
     <button
       type="button"
-      className="copy-button"
+      className="inline-flex h-[30px] shrink-0 items-center gap-[7px] rounded-lg border border-line-2 bg-card px-[11px] text-[12.5px] font-medium text-ink-3 transition-[color,border-color] duration-[140ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-line-3 hover:text-ink max-[700px]:self-start"
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(text)
@@ -79,11 +98,11 @@ function CopyButton({ text, label }: { text: string; label: string }) {
 
 function SectionHead({ icon, title, note }: { icon: ReactNode; title: string; note: string }) {
   return (
-    <div className="summary-head">
-      <span className="card-icon" aria-hidden="true">{icon}</span>
+    <div className="flex gap-[11px]">
+      <span className={CARD_ICON} aria-hidden="true">{icon}</span>
       <div>
-        <h2 className="summary-head-title">{title}</h2>
-        <p className="summary-head-note">{note}</p>
+        <h2 className={HEAD_TITLE}>{title}</h2>
+        <p className={HEAD_NOTE}>{note}</p>
       </div>
     </div>
   )
@@ -110,24 +129,26 @@ function ConciseView({
   const visible = open ? chapters : chapters.slice(0, 4)
 
   return (
-    <div className="summary-block">
-      <section className="summary-card">
-        <div className="summary-card-head">
-          <span className="card-icon" aria-hidden="true">{SPARKLE}</span>
-          <h2 className="summary-card-title">AI Summary</h2>
+    <div className={BLOCK}>
+      <section className="rounded-[14px] bg-sunken px-4 pb-[17px] pt-[15px]">
+        <div className="flex items-center gap-2.5">
+          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-card text-accent" aria-hidden="true">
+            {SPARKLE}
+          </span>
+          <h2 className="flex-1 text-sm font-[620] text-ink">AI Summary</h2>
           <CopyButton text={text} label="Copy" />
         </div>
-        <p className="summary-card-text">{stripInlineMd(text)}</p>
+        <p className="mt-3 max-w-[30rem] text-[14.5px] leading-[1.68] text-ink-2">{stripInlineMd(text)}</p>
       </section>
 
       {chapters.length > 0 && (
-        <section className="chapters" aria-label="Chapters">
-          <div className="chapters-head">
-            <span className="card-icon" aria-hidden="true"><ListOrdered size={14} /></span>
-            <span className="chapters-title">Chapters</span>
+        <section className="grid border-t border-line pt-4" aria-label="Chapters">
+          <div className="flex items-center gap-2.5 pb-2">
+            <span className={CARD_ICON} aria-hidden="true"><ListOrdered size={14} /></span>
+            <span className="flex-1 text-[13.5px] font-[620] text-ink">Chapters</span>
             <button
               type="button"
-              className="chapters-count"
+              className="inline-flex items-center gap-[5px] text-xs text-ink-4 hover:text-ink"
               aria-expanded={open}
               onClick={() => setOpen((value) => !value)}
             >
@@ -136,21 +157,23 @@ function ConciseView({
             </button>
           </div>
 
-          <ol className="chapter-list">
+          <ol className={DIVIDED}>
             {visible.map((chapter, index) => (
               <li key={chapter.startMs}>
                 <button
                   type="button"
-                  className="chapter"
+                  className="group grid w-full grid-cols-[24px_minmax(0,1fr)_auto] items-start gap-[11px] rounded-[9px] px-2 py-2.5 text-left transition-colors duration-[130ms] hover:bg-sunken max-[700px]:grid-cols-[22px_minmax(0,1fr)_auto] max-[700px]:gap-[9px] max-[700px]:px-1 max-[700px]:py-[9px]"
                   onClick={() => onSeek(chapter.startMs)}
                   title={`Play from ${formatTime(chapter.startMs)}`}
                 >
-                  <span className="chapter-num" aria-hidden="true">{index + 1}</span>
+                  <span className={`${NUM} group-hover:bg-card`} aria-hidden="true">{index + 1}</span>
                   <span>
-                    <span className="chapter-title">{chapter.title}</span>
-                    {chapter.note ? <span className="chapter-note">{chapter.note}</span> : null}
+                    <span className="block text-[13px] font-semibold leading-[1.45] text-ink">{chapter.title}</span>
+                    {chapter.note ? (
+                      <span className="mt-0.5 line-clamp-1 text-[12.5px] leading-[1.5] text-ink-4">{chapter.note}</span>
+                    ) : null}
                   </span>
-                  <span className="chapter-time">
+                  <span className={`${TIME} group-hover:text-ink-3`}>
                     {formatTime(chapter.startMs)} – {formatTime(chapter.endMs)}
                   </span>
                 </button>
@@ -179,13 +202,13 @@ function DetailedView({
 
   if (!blocks) {
     return (
-      <div className="summary-block">
+      <div className={BLOCK}>
         <SectionHead
           icon={<FileText size={15} />}
           title="Detailed Summary"
           note="A comprehensive overview of this video with key points, context, and insights."
         />
-        <p className="section-text">{stripInlineMd(text)}</p>
+        <p className={FALLBACK}>{stripInlineMd(text)}</p>
       </div>
     )
   }
@@ -193,26 +216,30 @@ function DetailedView({
   const locations = locateSections(blocks, transcript)
 
   return (
-    <div className="summary-block">
+    <div className={BLOCK}>
       <SectionHead
         icon={<FileText size={15} />}
         title="Detailed Summary"
         note="A comprehensive overview of this video with key points, context, and insights."
       />
-      <ol className="sections">
+      <ol className={`grid ${DIVIDED}`}>
         {blocks.map((block, index) => {
           const { lead, rest } = splitLead(block)
           const at = locations[index]
           return (
-            <li key={index} className="section">
-              <span className="section-num" aria-hidden="true">{index + 1}</span>
+            <li key={index} className="grid grid-cols-[24px_minmax(0,1fr)] gap-3 py-[13px]">
+              <span className={NUM} aria-hidden="true">{index + 1}</span>
               <div>
-                <div className="section-head">
-                  {lead ? <h3 className="section-lead">{lead}</h3> : <span className="section-lead" />}
+                <div className="flex items-baseline justify-between gap-3">
+                  {lead ? (
+                    <h3 className="text-[13.5px] font-[620] text-ink">{lead}</h3>
+                  ) : (
+                    <span className="text-[13.5px] font-[620]" />
+                  )}
                   {at !== null ? (
                     <button
                       type="button"
-                      className="section-time"
+                      className={`${TIME} transition-colors duration-[140ms] hover:text-ink`}
                       onClick={() => onSeek(at)}
                       title={`Play from ${formatTime(at)}`}
                     >
@@ -220,7 +247,7 @@ function DetailedView({
                     </button>
                   ) : null}
                 </div>
-                <p className="section-text">{rest}</p>
+                <p className={FALLBACK}>{rest}</p>
               </div>
             </li>
           )
@@ -235,29 +262,29 @@ function BulletsView({ text }: { text: string }) {
   const items = bulletLines(text)
 
   return (
-    <div className="summary-block">
+    <div className={BLOCK}>
       <SectionHead
         icon={<ListOrdered size={15} />}
         title="Key Takeaways"
         note="A clear, structured summary of the most important points from this video."
       />
       {items ? (
-        <ul className="points">
+        <ul className={`grid ${DIVIDED}`}>
           {items.map((item, index) => {
             const { lead, rest } = splitLead(item)
             return (
-              <li key={index} className="point">
-                <span className={`point-dot is-${DOTS[index % DOTS.length]}`} aria-hidden="true" />
+              <li key={index} className="grid grid-cols-[8px_minmax(0,1fr)] gap-[13px] py-[11px]">
+                <span className={`mt-1.5 h-2 w-2 rounded-full ${DOTS[index % DOTS.length]}`} aria-hidden="true" />
                 <span>
-                  {lead ? <span className="point-lead">{lead}</span> : null}
-                  <span className="point-text">{rest}</span>
+                  {lead ? <span className={LEAD}>{lead}</span> : null}
+                  <span className={TEXT}>{rest}</span>
                 </span>
               </li>
             )
           })}
         </ul>
       ) : (
-        <p className="section-text">{stripInlineMd(text)}</p>
+        <p className={FALLBACK}>{stripInlineMd(text)}</p>
       )}
     </div>
   )
@@ -268,31 +295,34 @@ function KeyPointsView({ text }: { text: string }) {
   const items = numberedLines(text)
 
   return (
-    <div className="summary-block">
+    <div className={BLOCK}>
       <SectionHead
         icon={<ListOrdered size={15} />}
         title="Key Points"
         note="The most important takeaways from this video."
       />
       {items ? (
-        <ol className="keypoints">
+        <ol className={`grid ${DIVIDED}`}>
           {items.map((item, index) => {
             const { lead, rest } = splitLead(item)
             return (
-              <li key={index} className="keypoint">
-                <span className={`keypoint-num is-${DOTS[index % DOTS.length]}`} aria-hidden="true">
+              <li key={index} className="grid grid-cols-[24px_minmax(0,1fr)] gap-3 py-3">
+                <span
+                  className={`grid h-6 w-6 place-items-center rounded-[7px] text-xs font-[620] ${DOTS[index % DOTS.length]}`}
+                  aria-hidden="true"
+                >
                   {index + 1}
                 </span>
                 <span>
-                  {lead ? <span className="keypoint-lead">{lead}</span> : null}
-                  <span className="keypoint-text">{rest}</span>
+                  {lead ? <span className={LEAD}>{lead}</span> : null}
+                  <span className={TEXT}>{rest}</span>
                 </span>
               </li>
             )
           })}
         </ol>
       ) : (
-        <p className="section-text">{stripInlineMd(text)}</p>
+        <p className={FALLBACK}>{stripInlineMd(text)}</p>
       )}
     </div>
   )
@@ -318,10 +348,12 @@ export function SummaryPanel({
 
   return (
     <>
-      <div className="mode-row">
-        <div className="mode-col">
-          <span className="field-label" id="summary-style">Summary style</span>
-          <div className="mode-group" role="group" aria-labelledby="summary-style">
+      <div className="flex items-end justify-between gap-3.5 border-b border-line pb-4 max-[700px]:flex-col max-[700px]:items-stretch max-[700px]:gap-3">
+        <div className="grid min-w-0 gap-[9px]">
+          <span className="block text-[12.5px] font-[550] text-ink-3" id="summary-style">
+            Summary style
+          </span>
+          <div className="flex flex-wrap gap-[7px]" role="group" aria-labelledby="summary-style">
             {SUMMARY_MODES.map((option) => (
               <button
                 key={option.value}
@@ -329,6 +361,7 @@ export function SummaryPanel({
                 aria-pressed={mode === option.value}
                 disabled={busy}
                 onClick={() => onModeChange(option.value)}
+                className="h-[30px] rounded-lg border border-line-2 bg-card px-[13px] text-[12.5px] font-medium text-ink-3 transition-[color,border-color,background] duration-[140ms] ease-[cubic-bezier(0.16,1,0.3,1)] hover:border-line-3 hover:text-ink aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-paper"
               >
                 {option.label}
               </button>
@@ -339,8 +372,10 @@ export function SummaryPanel({
       </div>
 
       {!text ? (
-        <div className="summary-block">
-          <p className="muted-note">No summary was returned for this video.</p>
+        <div className={BLOCK}>
+          <p className="flex items-center gap-[7px] text-[13px] leading-[1.55] text-ink-4">
+            No summary was returned for this video.
+          </p>
         </div>
       ) : null}
 

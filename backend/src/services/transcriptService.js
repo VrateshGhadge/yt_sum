@@ -51,45 +51,71 @@ function pickTrack(tracks){
     return tracks[0]
 }
 
+/**
+ * Read one video's captions. Never throws: it reports what happened, and the
+ * caller decides what that means. The reason matters because a host YouTube
+ * refuses and a video with no captions look identical from the outside.
+ */
+async function readCaptions(videoId){
+    if(!videoId){
+        return { ok: false, reason: 'no-video-id' }
+    }
+
+    try{
+        // Reading the track list first is what makes the choice above possible.
+        const track = pickTrack(await listLanguages(videoId))
+        if(!track){
+            return { ok: false, reason: 'no-tracks' }
+        }
+
+        // youtube-transcript-plus solves YouTube's PoToken requirement, which
+        // makes the older youtube-transcript package return empty results.
+        const items = await fetchTranscript(videoId, { lang: track.languageCode })
+        if(!items || items.length === 0){
+            return { ok: false, reason: 'empty-transcript' }
+        }
+
+        return { ok: true, items, track }
+    }catch(err){
+        return { ok: false, reason: err?.name || 'Error', message: err?.message }
+    }
+}
+
 /* "This video has no captions" and "YouTube would not talk to us" look the same
    to the visitor but only one of them is worth retrying, so they are separated
    here: the first is a 404 the caller answers with, the second is ours. */
 const NO_CAPTIONS = new Set([
     'YoutubeTranscriptDisabledError',
     'YoutubeTranscriptNotAvailableError',
+    'YoutubeTranscriptNotAvailableLanguageError',
     'YoutubeTranscriptVideoUnavailableError',
     'YoutubeTranscriptInvalidVideoIdError',
+    'no-tracks',
 ])
 
 async function fetchRawTranscript(videoId){
-    if(!videoId){
+    const result = await readCaptions(videoId)
+
+    if(result.ok){
+        return result.items
+    }
+
+    // Every failure is named in the log, including the ones the visitor is told
+    // are "no captions" — from a server that is the difference between a video
+    // we cannot read and a host YouTube is refusing.
+    console.warn(
+        `[transcript] ${videoId} could not be read: ${result.reason}` +
+        (result.message ? ` (${result.message})` : '')
+    )
+
+    if(NO_CAPTIONS.has(result.reason)){
         return null
     }
 
-    let track
-    try{
-        // Reading the track list first is what makes the choice above possible.
-        track = pickTrack(await listLanguages(videoId))
-        if(!track){
-            return null
-        }
-        // youtube-transcript-plus solves YouTube's PoToken requirement, which
-        // makes the older youtube-transcript package return empty results.
-        return await fetchTranscript(videoId, { lang: track.languageCode })
-    }catch(err){
-        const name = err?.name || 'Error'
-
-        if(NO_CAPTIONS.has(name)){
-            return null
-        }
-
-        // The operator gets the numbers; the visitor gets one plain sentence.
-        console.warn(`[transcript] ${videoId} unavailable: ${name}: ${err?.message || err}`)
-        throw new AiError(
-            "We couldn't read this video's captions right now. Please try again in a few minutes.",
-            { status: 503, code: 'TRANSCRIPT_UNAVAILABLE' }
-        )
-    }
+    throw new AiError(
+        "We couldn't read this video's captions right now. Please try again in a few minutes.",
+        { status: 503, code: 'TRANSCRIPT_UNAVAILABLE' }
+    )
 }
 
 // Full clean text + timed segments in a single fetch (used by the summary flow).
@@ -138,4 +164,4 @@ async function getTimedSegments(videoId){
     return data ? data.segments : null;
 }
 
-module.exports = { getTranscriptByVideoId, getTimedSegments, getTranscriptData }
+module.exports = { getTranscriptByVideoId, getTimedSegments, getTranscriptData, readCaptions }

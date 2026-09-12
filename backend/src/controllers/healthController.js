@@ -25,9 +25,10 @@ async function getHealth(req, res) {
         data.captions = result.ok ? 'ok' : 'unavailable';
         data.reason = result.ok ? null : result.reason;
         data.track = result.ok ? result.track.languageCode : null;
-        // True when the watch page could not be read and the player call was made
-        // with a supplied key instead — the difference between a host YouTube
+        // Which route answered: the library, the library with a supplied key, or
+        // the second Innertube client — the difference between a host YouTube
         // will talk to and one it will not.
+        data.via = result.via || null;
         data.usedFallbackKey = Boolean(result.usedFallbackKey);
     }
 

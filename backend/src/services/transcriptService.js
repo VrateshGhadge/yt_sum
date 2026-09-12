@@ -1,5 +1,6 @@
 const { fetchTranscript, listLanguages } = require('youtube-transcript-plus')
 const { AiError } = require('./aiService')
+const { readCaptionsViaInnertube } = require('./innertubeCaptions')
 const { DEFAULT_PARAGRAPH_MS, decodeHtmlEntities, mergeSegmentsByDuration, sanitizeText } = require('../utils/transcript')
 
 // Summarize, then Ask, then Notes, then Quiz all need the SAME transcript for
@@ -62,7 +63,10 @@ async function readCaptions(videoId){
     }
 
     const first = await attemptCaptions(videoId)
-    if(first.ok || first.reason !== 'YoutubeTranscriptNotAvailableError'){
+    if(first.ok){
+        return { ...first, via: 'library' }
+    }
+    if(first.reason !== 'YoutubeTranscriptNotAvailableError'){
         return first
     }
 
@@ -75,8 +79,25 @@ async function readCaptions(videoId){
         `"INNERTUBE_API_KEY":"${INNERTUBE_FALLBACK_KEY}"`,
         { status: 200, headers: { 'content-type': 'text/html' } }
     ))
+    if(second.ok){
+        return { ...second, via: 'library+key', usedFallbackKey: true }
+    }
 
-    return second.ok ? { ...second, usedFallbackKey: true } : second
+    // Still refused. Ask as a different Innertube client entirely.
+    const third = await readCaptionsViaInnertube(videoId)
+    if(third.ok){
+        return { ...third, via: 'innertube' }
+    }
+
+    /* Nobody would read it. If a second client also found no tracks, the video
+       really has none — that is the visitor's answer. Anything else means YouTube
+       is refusing this host, which is ours to own rather than to blame on the
+       video. */
+    return {
+        ok: false,
+        reason: third.reason === 'no-tracks' ? 'no-tracks' : 'host-refused',
+        details: { library: first.reason, keyed: second.reason, innertube: third.reason },
+    }
 }
 
 const INNERTUBE_FALLBACK_KEY = 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8'

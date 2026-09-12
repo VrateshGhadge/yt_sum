@@ -61,6 +61,12 @@ export function useWorkspace(getToken: TokenGetter) {
       setAnswer(null)
       setSeek(0)
       reloadHistory()
+      // Claim the id before the URL names it: navigating is a store update, so
+      // React commits the route in its own render — one frame before the video
+      // state lands, and while the history list is still the one from before
+      // this summary. Without the claim, the route effect below would look for
+      // a video that is already in hand and send the visitor home.
+      resolvedRef.current = result.videoId
       navigate(`/video/${result.videoId}`)
     } catch (e) {
       setError(errorMessage(e, 'Unable to analyze this video.'))
@@ -148,6 +154,8 @@ export function useWorkspace(getToken: TokenGetter) {
           summary: record.summary,
           transcript: record.transcriptText,
           timestamps: record.segments,
+          createdAt: record.createdAt,
+          durationMs: record.durationMs,
         })
         setUrl(record.videoUrl || videoUrl(record.videoId))
         setMode(record.summaryMode)
@@ -169,20 +177,23 @@ export function useWorkspace(getToken: TokenGetter) {
     [getToken],
   )
 
-  // One load attempt per visit to a video URL: without this, a failed fetch would
-  // re-arm the effect and retry forever.
-  const attemptedRef = useRef<string | null>(null)
+  // The video ids this workspace has already accounted for, whether it opened
+  // them from history or just summarized them. Read by the route effect below,
+  // and it has to be a ref rather than state: the effect runs on the render that
+  // the route change itself causes, which is a frame before a state update made
+  // alongside it has landed.
+  const resolvedRef = useRef<string | null>(null)
 
   // Leaving the video route clears the guard, so a link that failed once is
   // allowed to try again when the visitor comes back to it.
   useEffect(() => {
-    if (route.name !== 'video') attemptedRef.current = null
+    if (route.name !== 'video') resolvedRef.current = null
   }, [route])
 
   useEffect(() => {
     if (route.name !== 'video') return
     if (video?.videoId === route.videoId) return
-    if (attemptedRef.current === route.videoId) return
+    if (resolvedRef.current === route.videoId) return
     // A deep link arrives before the list does; wait for it to settle so the
     // video can be resolved by id.
     if (historyStatus === 'idle' || historyStatus === 'loading') return
@@ -198,7 +209,7 @@ export function useWorkspace(getToken: TokenGetter) {
       return
     }
 
-    attemptedRef.current = route.videoId
+    resolvedRef.current = route.videoId
     void openRecord(item)
   }, [route, video?.videoId, history, historyStatus, historyError, openRecord])
 

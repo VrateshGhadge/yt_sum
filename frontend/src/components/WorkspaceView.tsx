@@ -1,12 +1,23 @@
+import { ArrowLeft, ClipboardList, FileText, GraduationCap, MessageCircle } from 'lucide-react'
 import { useRef, type FormEvent, type KeyboardEvent } from 'react'
-import { SUMMARY_MODES, TABS } from '../constants'
-import type { Answer, QuizQuestion, SummaryMode, WorkspaceTab } from '../types'
+import { TABS } from '../constants'
+import type { Answer, QuizQuestion, Segment, SummaryMode, WorkspaceTab } from '../types'
 import { AskPanel } from './analysis/AskPanel'
 import { NotesPanel } from './analysis/NotesPanel'
 import { QuizPanel } from './analysis/QuizPanel'
 import { SummaryPanel } from './analysis/SummaryPanel'
+import { Link } from './Link'
 import { Loading } from './Loading'
 import { VideoPane } from './VideoPane'
+
+/* Each tab wears the mark of the thing it holds: the list of the summary, the
+   bubble of the questions, the page of the notes, the cap of the quiz. */
+const TAB_ICONS = {
+  summary: ClipboardList,
+  ask: MessageCircle,
+  notes: FileText,
+  quiz: GraduationCap,
+} as const
 
 export function WorkspaceView({
   video,
@@ -31,7 +42,8 @@ export function WorkspaceView({
     videoId: string
     title: string | null
     author: string | null
-    timestamps?: { offsetMs: number; text: string }[]
+    createdAt?: string
+    timestamps?: Segment[]
   }
   currentMs: number
   onSeek: (ms: number) => void
@@ -66,10 +78,16 @@ export function WorkspaceView({
 
   return (
     <main className="workspace" id="main-content">
+      <Link to="/history" className="workspace-back">
+        <ArrowLeft size={15} aria-hidden="true" />
+        Back to history
+      </Link>
+
       <VideoPane
         videoId={video.videoId}
         title={video.title ?? ''}
         author={video.author ?? ''}
+        createdAt={video.createdAt}
         transcript={video.timestamps ?? []}
         currentMs={currentMs}
         onSeek={onSeek}
@@ -77,23 +95,27 @@ export function WorkspaceView({
 
       <section className="analysis-pane" aria-label="Summary and study tools">
         <div className="tabs" role="tablist" aria-label="Views">
-          {TABS.map(({ id, label }, index) => (
-            <button
-              ref={(node) => { tabRefs.current[index] = node }}
-              key={id}
-              id={`tab-${id}`}
-              type="button"
-              role="tab"
-              aria-selected={tab === id}
-              aria-controls={`panel-${id}`}
-              tabIndex={tab === id ? 0 : -1}
-              className={tab === id ? 'is-on' : ''}
-              onClick={() => onTabChange(id)}
-              onKeyDown={(event) => move(event, index)}
-            >
-              {label}
-            </button>
-          ))}
+          {TABS.map(({ id, label }, index) => {
+            const Icon = TAB_ICONS[id]
+            return (
+              <button
+                ref={(node) => { tabRefs.current[index] = node }}
+                key={id}
+                id={`tab-${id}`}
+                type="button"
+                role="tab"
+                aria-selected={tab === id}
+                aria-controls={`panel-${id}`}
+                tabIndex={tab === id ? 0 : -1}
+                className={tab === id ? 'is-on' : ''}
+                onClick={() => onTabChange(id)}
+                onKeyDown={(event) => move(event, index)}
+              >
+                <Icon size={15} aria-hidden="true" />
+                {label}
+              </button>
+            )
+          })}
         </div>
 
         {busy && <Loading label={busy} />}
@@ -106,26 +128,14 @@ export function WorkspaceView({
           className="panel"
         >
           {tab === 'summary' && (
-            <>
-              <div className="mode-row">
-                <span className="field-label">Summary style</span>
-                <div className="mode-group" role="radiogroup" aria-label="Summary style">
-                  {SUMMARY_MODES.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      role="radio"
-                      aria-checked={mode === option.value}
-                      disabled={Boolean(busy)}
-                      onClick={() => onModeChange(option.value)}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <SummaryPanel summary={summary} />
-            </>
+            <SummaryPanel
+              summary={summary}
+              mode={mode}
+              busy={Boolean(busy)}
+              onModeChange={onModeChange}
+              transcript={video.timestamps ?? []}
+              onSeek={onSeek}
+            />
           )}
 
           {tab === 'ask' && (

@@ -6,6 +6,15 @@ export interface Segment {
   durationMs: number
 }
 
+/* A chapter is one of the transcript's own sections, numbered and given its
+   span. Nothing about it is generated — it locates text that already exists. */
+export interface Chapter {
+  title: string
+  note: string
+  startMs: number
+  endMs: number
+}
+
 export interface Citation {
   text: string
   startMs: number
@@ -30,6 +39,10 @@ export interface VideoData {
   summary: string
   transcript?: string
   timestamps?: Segment[]
+  /* Set when the video is reopened from history; absent on a fresh summary,
+     which has only just been made. */
+  createdAt?: string
+  durationMs?: number | null
 }
 
 export interface HistoryItem {
@@ -41,6 +54,10 @@ export interface HistoryItem {
   summaryMode: SummaryMode
   summary: string
   createdAt: string
+  /* Both come from the list endpoint: the card shows the runtime as a badge on
+     the thumbnail and the section count as a tag. */
+  durationMs?: number | null
+  segmentCount?: number
   transcriptText?: string
   segments?: Segment[]
 }

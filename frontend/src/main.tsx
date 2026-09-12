@@ -11,12 +11,12 @@ const key = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
    off-palette elements in the app, so they are themed to the same ink. */
 const clerkAppearance = {
   variables: {
-    colorPrimary: '#131517',
-    colorText: '#131517',
-    colorTextSecondary: '#555b60',
-    colorBackground: '#fdfdfd',
-    colorInputBackground: '#fdfdfd',
-    colorInputText: '#131517',
+    colorPrimary: '#1a1815',
+    colorText: '#1a1815',
+    colorTextSecondary: '#5c5851',
+    colorBackground: '#fdfbf8',
+    colorInputBackground: '#fdfbf8',
+    colorInputText: '#1a1815',
     borderRadius: '4px',
     fontFamily: '"Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif',
   },

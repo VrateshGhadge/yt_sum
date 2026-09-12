@@ -21,7 +21,6 @@ function Elapsed() {
   // changed every second would be announced over and over.
   return (
     <span className="overlay-timer" aria-hidden="true">
-      {' · '}
       {formatElapsed(elapsedMs)}
     </span>
   )

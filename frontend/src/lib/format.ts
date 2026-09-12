@@ -28,13 +28,16 @@ export function videoUrl(videoId: string) {
   return `https://www.youtube.com/watch?v=${videoId}`
 }
 
+/* Fallbacks only. The backend's message is preferred wherever it sends one,
+   because it knows what actually happened — these cover a request that never
+   reached it. None of them name a model, a provider, or a plan: that is our
+   infrastructure, not the visitor's problem. */
 export function readableError(status: number, fallback?: string) {
   if (status === 401) return 'Your session expired. Sign in again.'
   if (status === 404) return 'This video has no captions available.'
-  // The backend reads the provider's reset time, and the daily cap and the
-  // per-minute cap are very different waits — so its message is the useful one.
-  if (status === 429) return fallback || 'The model is rate-limited right now. Try again in a moment.'
-  if (status === 502) return 'The model is unavailable right now. Try again shortly.'
+  if (status === 429) return fallback || "We're handling a lot of requests right now. Please try again in a few minutes."
+  if (status === 502) return fallback || 'The summarizer is temporarily unavailable. Please try again shortly.'
   if (status === 503) return 'That service is unavailable right now.'
+  if (status >= 500) return 'Something went wrong. Please try again.'
   return fallback || 'Something went wrong. Please try again.'
 }

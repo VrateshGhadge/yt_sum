@@ -56,23 +56,35 @@ function formatReset(resetAt) {
     minute: '2-digit',
   });
   const hoursAway = (resetAt - Date.now()) / 3600000;
-  if (hoursAway < 1) return `It resets at ${time}.`;
+  if (hoursAway < 1) return `after ${time}`;
   const day = new Date(resetAt).toLocaleDateString(undefined, { weekday: 'long' });
-  return `It resets at ${time} on ${day}.`;
+  return `after ${time} on ${day}`;
 }
 
-// Names the cap that was actually hit, so the message is not a generic
-// "rate limited" for two very different situations.
+/* Messages the visitor reads. They say what happened and what to do, and nothing
+   about how the service is built: no provider, no model, no tier, no quota
+   counts. The diagnostic detail goes to the server log in attemptModel instead,
+   where it is useful and nobody is reading over a shoulder.
+   Two cases are worth separating because the waits are hours apart: capacity
+   that clears on its own within the hour, and capacity that only returns on the
+   next day. */
+const TRY_AGAIN = 'Something went wrong. Please try again.';
+
 function rateLimitError(err) {
   const resetAt = resetAtMs(err);
-  const when = resetAt ? ' ' + formatReset(resetAt) : ' Try again shortly.';
   const perDay = err?.rateLimitSource === 'openrouter_free_tier_daily';
-  const count = err?.rateLimitLimit ? ` (${err.rateLimitLimit} requests)` : '';
+
+  if (perDay) {
+    return new AiError(
+      resetAt
+        ? `We're at capacity for today. Please try again ${formatReset(resetAt)}.`
+        : "We're at capacity for today. Please try again tomorrow.",
+      { status: 429, code: 'RATE_LIMITED' }
+    );
+  }
 
   return new AiError(
-    perDay
-      ? `The free model daily limit${count} is used up for today.${when}`
-      : `The model is rate-limited right now.${when}`,
+    "We're handling a lot of requests right now. Please try again in a few minutes.",
     { status: 429, code: 'RATE_LIMITED' }
   );
 }
@@ -93,26 +105,29 @@ class AiError extends Error {
   }
 }
 
+// Last-resort translation of a provider error into something a visitor can read.
+// Same rule as rateLimitError: state the situation, offer the next step, and
+// describe nothing about how the service is built.
 function toReadableError(err) {
-  const rawMessage = err?.message || 'Unknown AI provider error';
+  const rawMessage = err?.message || 'Unknown error';
   const status = typeof err?.status === 'number' ? err.status : 502;
 
-  if (status === 429) {
-    return new AiError(
-      'Rate limited by the AI provider (free models have daily caps). Try again in a moment.',
-      { status: 429, code: 'RATE_LIMITED' }
-    );
-  }
+  if (status === 429) return rateLimitError(err);
   if (status === 401) {
-    return new AiError('Invalid AI API key.', { status: 502, code: 'INVALID_KEY' });
+    return new AiError('Something went wrong on our end. Please try again shortly.', {
+      status: 502,
+      code: 'INVALID_KEY',
+    });
   }
   if (status >= 500) {
-    return new AiError('The AI provider is temporarily unavailable. Please retry shortly.', {
+    return new AiError('The summarizer is temporarily unavailable. Please try again shortly.', {
       status: 502,
       code: 'PROVIDER_DOWN',
     });
   }
-  return new AiError(rawMessage, { status, code: 'AI_ERROR' });
+  // Anything unrecognised is a fault here, not something the visitor can act on.
+  console.warn('[ai] unhandled provider error:', rawMessage);
+  return new AiError('Something went wrong. Please try again.', { status, code: 'AI_ERROR' });
 }
 
 // OpenRouter `:free` model variants commonly return their chain-of-thought
@@ -164,11 +179,12 @@ async function postChatCompletion({ model, messages, temperature, maxTokens, tim
     });
   } catch (err) {
     if (err?.name === 'AbortError') {
-      throw new AiError('The AI request timed out. The transcript may be very long — try again.', {
+      throw new AiError('This video is taking longer than usual. Please try again.', {
         code: 'TIMEOUT',
       });
     }
-    throw new AiError('Could not reach the AI provider. Check your network connection.', {
+    console.warn('[ai] request failed:', err?.message || err);
+    throw new AiError("We couldn't reach the summarizer. Check your connection and try again.", {
       code: 'NETWORK',
     });
   } finally {
@@ -198,7 +214,7 @@ async function postChatCompletion({ model, messages, temperature, maxTokens, tim
 
   const content = body?.choices?.[0]?.message?.content;
   if (!content || !content.trim()) {
-    throw new AiError('The AI returned an empty response.', { code: 'EMPTY_RESPONSE' });
+    throw new AiError(TRY_AGAIN, { code: 'EMPTY_RESPONSE' });
   }
   return stripThinkingPreamble(content);
 }
@@ -241,6 +257,13 @@ async function attemptModel(model, payload) {
       const untilReset = resetAtMs(err) ? Math.max(0, resetAtMs(err) - Date.now()) : null;
       const wait = retryAfterMs(err) ?? untilReset;
 
+      // The visitor gets a plain sentence; the operator gets the numbers. Without
+      // this line the message they read says nothing about which limit was hit.
+      console.warn(
+        `[ai] ${model} rate-limited: source=${err?.rateLimitSource || 'unknown'} ` +
+        `limit=${err?.rateLimitLimit || '?'} resetsIn=${untilReset === null ? '?' : Math.round(untilReset / 1000) + 's'}`
+      );
+
       // A window that outlasts our patience cannot be retried into succeeding,
       // so stop waiting on this model. Whether another model is worth trying is
       // a separate question, answered below.
@@ -248,8 +271,7 @@ async function attemptModel(model, payload) {
 
       if (attempt === RETRY_ATTEMPTS) break;
 
-      const delay = wait ?? backoffMs(attempt);
-      console.warn(`[ai] ${model} rate-limited, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${RETRY_ATTEMPTS})`);
+      const delay = backoffMs(attempt);
       await sleep(delay);
     }
   }
@@ -276,10 +298,15 @@ async function chatCompletion({
   timeoutMs = Number(process.env.AI_TIMEOUT_MS) || 30000,
 }) {
   if (!OPENROUTER_API_KEY) {
-    throw new AiError(
-      'OPENROUTER_API_KEY is not set. Add it to backend/.env.local to use OpenRouter free models.',
-      { status: 502, code: 'MISSING_KEY' }
+    // The visitor gets the same sentence as any other outage; whoever is running
+    // this gets the instruction, loudly, in the terminal.
+    console.error(
+      '[ai] OPENROUTER_API_KEY is not set. Add it to backend/.env.local to enable summarization.'
     );
+    throw new AiError('The summarizer is not available right now. Please try again later.', {
+      status: 502,
+      code: 'MISSING_KEY',
+    });
   }
 
   const payload = {
@@ -430,7 +457,7 @@ async function summarizeTranscript(text, { mode = 'concise', maxChunkChars = 100
 // outermost object, and parses it. Throws AiError on failure.
 function parseJson(content) {
   if (!content || typeof content !== 'string') {
-    throw new AiError('The AI returned non-text output.', { code: 'BAD_RESPONSE' });
+    throw new AiError(TRY_AGAIN, { code: 'BAD_RESPONSE' });
   }
 
   let str = content.trim();
@@ -440,13 +467,13 @@ function parseJson(content) {
   const start = str.indexOf('{');
   const end = str.lastIndexOf('}');
   if (start === -1 || end === -1 || end < start) {
-    throw new AiError('The AI output contained no JSON object.', { code: 'BAD_RESPONSE' });
+    throw new AiError(TRY_AGAIN, { code: 'BAD_RESPONSE' });
   }
 
   try {
     return JSON.parse(str.slice(start, end + 1));
   } catch {
-    throw new AiError('The AI returned invalid JSON.', { code: 'BAD_RESPONSE' });
+    throw new AiError(TRY_AGAIN, { code: 'BAD_RESPONSE' });
   }
 }
 
@@ -516,7 +543,7 @@ async function generateQuiz(text, count) {
   const parsed = parseJson(raw);
   const rawQuestions = Array.isArray(parsed?.questions) ? parsed.questions : null;
   if (!rawQuestions || rawQuestions.length === 0) {
-    throw new AiError('The AI returned no quiz questions.', { code: 'BAD_RESPONSE' });
+    throw new AiError("We couldn't build a quiz for this video. Please try again.", { code: 'BAD_RESPONSE' });
   }
 
   const questions = rawQuestions
@@ -540,7 +567,7 @@ async function generateQuiz(text, count) {
     .slice(0, desired);
 
   if (questions.length === 0) {
-    throw new AiError('The AI returned malformed quiz questions.', { code: 'BAD_RESPONSE' });
+    throw new AiError("We couldn't build a quiz for this video. Please try again.", { code: 'BAD_RESPONSE' });
   }
 
   return { questions };

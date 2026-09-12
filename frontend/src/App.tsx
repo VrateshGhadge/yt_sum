@@ -1,5 +1,5 @@
 import { SignedIn, SignedOut, useAuth } from '@clerk/clerk-react'
-import { SignedOutScreen } from './components/SignedOutScreen'
+import { LandingPage } from './components/landing/LandingPage'
 import { Workspace } from './components/Workspace'
 
 function AuthenticatedWorkspace() {
@@ -13,8 +13,10 @@ export default function App() {
       <SignedIn>
         <AuthenticatedWorkspace />
       </SignedIn>
+      {/* Someone without a session gets the page that explains the product and
+          offers one way in, rather than a locked door. */}
       <SignedOut>
-        <SignedOutScreen />
+        <LandingPage />
       </SignedOut>
     </>
   )

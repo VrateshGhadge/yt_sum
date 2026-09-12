@@ -45,11 +45,27 @@ async function listHistory(clerkId, { limit = 50 } = {}) {
     requireDb();
     // Exclude heavy fields (transcriptText, segments) — the list only needs
     // metadata; the full record is fetched per-item via getHistoryRecord.
-    return Transcript.find({ clerkId })
-        .select('videoId videoUrl title author summaryMode summary durationMs createdAt updatedAt')
-        .sort({ createdAt: -1 })
-        .limit(Math.min(Math.max(Number(limit) || 50, 1), 100))
-        .lean();
+    // segmentCount is computed server-side so the card can show how much
+    // transcript a video has without shipping the fragments themselves.
+    return Transcript.aggregate([
+        { $match: { clerkId } },
+        { $sort: { createdAt: -1 } },
+        { $limit: Math.min(Math.max(Number(limit) || 50, 1), 100) },
+        {
+            $project: {
+                videoId: 1,
+                videoUrl: 1,
+                title: 1,
+                author: 1,
+                summaryMode: 1,
+                summary: 1,
+                durationMs: 1,
+                createdAt: 1,
+                updatedAt: 1,
+                segmentCount: { $size: { $ifNull: ['$segments', []] } },
+            },
+        },
+    ]);
 }
 
 async function getHistoryRecord(clerkId, id) {

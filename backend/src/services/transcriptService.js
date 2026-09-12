@@ -66,9 +66,10 @@ async function readCaptions(videoId){
     if(first.ok){
         return { ...first, via: 'library' }
     }
-    if(first.reason !== 'YoutubeTranscriptNotAvailableError'){
-        return first
-    }
+    /* Any failure is worth a second route. From a server, "this video has no
+       captions" and "YouTube would not serve us this video" arrive as the same
+       shape of error, so the decision about which it is has to wait until the
+       other two routes have also had a go. */
 
     /* The library reads the watch page first to lift YouTube's Innertube key out
        of the HTML, and some addresses are served a page without it — which it

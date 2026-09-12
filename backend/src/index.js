@@ -11,7 +11,7 @@ const { clerkMiddleware } = require("@clerk/express");
 app.use(clerkMiddleware());
 
 // CORS — comma-separated CLIENT_ORIGIN env (defaults cover Vite's 5173/5174)
-const allowedOrigins = (process.env.CLIENT_ORIGIN || "http://localhost:5173,http://localhost:5174")
+const allowedOrigins = (process.env.CLIENT_ORIGIN || "https://summifyapp.netlify.app")
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);

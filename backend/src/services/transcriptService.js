@@ -61,16 +61,40 @@ async function readCaptions(videoId){
         return { ok: false, reason: 'no-video-id' }
     }
 
+    const first = await attemptCaptions(videoId)
+    if(first.ok || first.reason !== 'YoutubeTranscriptNotAvailableError'){
+        return first
+    }
+
+    /* The library reads the watch page first to lift YouTube's Innertube key out
+       of the HTML, and some addresses are served a page without it — which it
+       reports as "no transcripts are available". The key is a public constant
+       every YouTube client ships with, so a page we cannot read is not a reason
+       to give up: hand the library a key and let it make the player call. */
+    const second = await attemptCaptions(videoId, async () => new Response(
+        `"INNERTUBE_API_KEY":"${INNERTUBE_FALLBACK_KEY}"`,
+        { status: 200, headers: { 'content-type': 'text/html' } }
+    ))
+
+    return second.ok ? { ...second, usedFallbackKey: true } : second
+}
+
+const INNERTUBE_FALLBACK_KEY = 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8'
+
+async function attemptCaptions(videoId, videoFetch){
     try{
-        // Reading the track list first is what makes the choice above possible.
-        const track = pickTrack(await listLanguages(videoId))
+        // Reading the track list first is what makes the language choice possible.
+        const track = pickTrack(await listLanguages(videoId, videoFetch ? { videoFetch } : undefined))
         if(!track){
             return { ok: false, reason: 'no-tracks' }
         }
 
         // youtube-transcript-plus solves YouTube's PoToken requirement, which
         // makes the older youtube-transcript package return empty results.
-        const items = await fetchTranscript(videoId, { lang: track.languageCode })
+        const items = await fetchTranscript(videoId, {
+            lang: track.languageCode,
+            ...(videoFetch ? { videoFetch } : {}),
+        })
         if(!items || items.length === 0){
             return { ok: false, reason: 'empty-transcript' }
         }

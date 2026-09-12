@@ -12,6 +12,9 @@ const { readCaptions } = require('../services/transcriptService');
  */
 async function getHealth(req, res) {
     const data = {
+        // Which build is answering. Render exports the commit it deployed, so a
+        // probe can tell "the fix did not work" from "the fix is not live yet".
+        commit: (process.env.RENDER_GIT_COMMIT || '').slice(0, 7) || null,
         db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
         captions: 'not-checked',
     };

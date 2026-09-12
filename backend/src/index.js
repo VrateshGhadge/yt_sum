@@ -4,6 +4,12 @@ const connectDB = require('./config/db');
 const dotenv = require('dotenv');
 const { globalLimiter } = require('./middleware/rateLimiter');
 
+// Hosts that offer IPv6 sometimes get a different answer from YouTube than the
+// same host over IPv4 — on a server that reads as "this video has no captions".
+// Preferring IPv4 outbound keeps the caption read on the address family that
+// works from a laptop.
+require('dns').setDefaultResultOrder('ipv4first');
+
 dotenv.config({ path: ['.env.local', '.env'] });
 
 const app = express();

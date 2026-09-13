@@ -7,7 +7,13 @@ YouTube, generation runs on OpenRouter's free tier, and no billing account is
 required anywhere.
 
 
-https://github.com/user-attachments/assets/bf087e7e-5c71-4918-ac20-fd228b1d4e7b
+
+
+https://github.com/user-attachments/assets/d5282c87-c3ee-407f-8b00-2d584e1b2e8b
+
+
+
+
 ---
 
 

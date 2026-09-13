@@ -6,9 +6,15 @@ quiz. Every part of the pipeline is free and keyless — captions come from
 YouTube, generation runs on OpenRouter's free tier, and no billing account is
 required anywhere.
 
-<!-- Demo video: paste the link here when it is uploaded. -->
 
+https://github.com/user-attachments/assets/bf087e7e-5c71-4918-ac20-fd228b1d4e7b
 ---
+
+
+
+
+
+
 
 ## Features
 

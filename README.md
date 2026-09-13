@@ -1,166 +1,175 @@
-# YouTube Transcript Backend
+# Summify
 
-A backend service that accepts a **YouTube video URL** and returns a **clean transcript** with **free AI summaries** — no OpenAI, no billing.
+Paste a YouTube link, get something readable: a summary in four styles, a
+timestamped transcript, answers to questions about the video, study notes and a
+quiz. Every part of the pipeline is free and keyless — captions come from
+YouTube, generation runs on OpenRouter's free tier, and no billing account is
+required anywhere.
 
-The system fetches YouTube captions (free, keyless) and summarizes them using **OpenRouter `:free` models**, so the entire pipeline costs \$0.
-
----
-
-## What This Project Does
-
-- Accepts a YouTube URL
-- Fetches captions from YouTube
-- Returns sanitized transcript text
-- Generates AI summaries via OpenRouter free models (4 modes)
-- Answers questions about a video with timestamp citations
-- Generates study notes and quizzes
-- Stores per-user video history
+<!-- Demo video: paste the link here when it is uploaded. -->
 
 ---
 
-## Local Setup
+## Features
 
-Prerequisites: **Node.js 20+**, **Docker** (or OrbStack), a free **Clerk** account, and a free **OpenRouter** API key.
+- **Four summary styles** — concise, detailed, bullets and key points, each with
+  its own layout rather than one passage restyled four ways.
+- **Timestamped transcript** grouped into ~30-second sections; clicking a line
+  seeks the video.
+- **Ask questions** about the video and get answers with the timestamps they
+  came from.
+- **Study notes** and a **multiple-choice quiz** with explanations and a score.
+- **History** of everything you have summarized, reopenable and deletable.
+- **Clerk session auth** on every API route.
 
-### 1. Start MongoDB
+---
 
-The database is declared in `compose.yaml`, so no manual container setup is needed:
+## Tech stack
 
-```bash
-docker compose up -d      # start
-docker compose ps         # check status (wait for "healthy")
-docker compose down       # stop (data persists in the ytsum-mongo-data volume)
-```
-
-Data lives in the named volume `ytsum-mongo-data`, so it survives `down`/`up`. To wipe it and start fresh: `docker compose down -v`.
-
-### 2. Configure the backend
-
-```bash
-cd backend
-npm install
-cp .env.example .env.local     # then fill in your keys
-```
-
-Required values (see `backend/.env.example` for the full list):
-
-| Variable | Where to get it |
+| Layer | Choice |
 |---|---|
-| `CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | [dashboard.clerk.com](https://dashboard.clerk.com) → API Keys |
-| `OPENROUTER_API_KEY` | [openrouter.ai/keys](https://openrouter.ai/keys) (free, no card) |
-| `MONGO_URL` | `mongodb://127.0.0.1:27017/ytsum` (matches `compose.yaml`) |
+| Frontend | React 18, Vite, TypeScript, Tailwind CSS v4 (no component library) |
+| Backend | Node.js 20+, Express 5, Mongoose |
+| Database | MongoDB (Docker Compose locally, Atlas when deployed) |
+| Auth | Clerk (`@clerk/clerk-react`, `@clerk/express`) |
+| Captions | YouTube, via `youtube-transcript-plus` |
+| Generation | OpenRouter free-tier models |
 
-### 3. Configure the frontend
-
-```bash
-cd frontend
-npm install
-cp .env.example .env.local
-```
-
-Set `VITE_CLERK_PUBLISHABLE_KEY` to the **same Clerk instance** as the backend — if they differ, every API request returns 401.
-
-### 4. Run both servers
-
-```bash
-cd backend  && node src/index.js    # http://localhost:3000
-cd frontend && npm run dev          # http://localhost:5173
-```
-
-Open http://localhost:5173 and sign in.
-
----
-
-## Why This Project?
-
-YouTube captions are unreliable for programmatic access.  
-This project demonstrates how real-world backends handle API failures** using fallback strategies**.
+The visual system is documented in [DESIGN.md](DESIGN.md) and the product scope in
+[PRODUCT.md](PRODUCT.md). Design tokens live in `frontend/src/styles.css` as a
+Tailwind `@theme` block; everything else is utilities in the markup.
 
 ---
 
 ## Architecture
 
 ```
+frontend/                React app
+  src/components/        landing/ (public page) + the workspace screens
+  src/components/analysis/  summary, ask, notes, quiz panels
+  src/hooks/             route + workspace state
+  src/lib/               router, formatting, chapter and topic derivation
+  src/styles.css         design tokens + the few rules that cannot be utilities
 
-Routes → Controllers → Services → Utils / Models
-
+backend/                 Express API
+  src/routes/            one file per endpoint group
+  src/controllers/       request/response, error shaping
+  src/services/          transcripts, AI, history
+  src/middleware/        Clerk auth, rate limiting, error handler
+  src/models/            Mongoose schemas
 ```
 
-- Controllers handle request/response
-- Services handle business logic & external APIs
-- Middleware handles auth, rate limiting, and errors
+A request travels: **route → controller → service → (YouTube | OpenRouter) → model**.
 
 ---
 
-## Transcript Flow
+## Getting started
 
+Prerequisites: **Node.js 20+**, **Docker** (or OrbStack), a free **Clerk**
+application, and a free **OpenRouter** API key.
+
+### 1. Database
+
+MongoDB is declared in `compose.yaml`, so there is no manual container setup:
+
+```bash
+docker compose up -d      # start
+docker compose ps         # wait for "healthy"
+docker compose down       # stop (data survives in the ytsum-mongo-data volume)
 ```
 
-Request → Auth → Transcript Service
-→ YouTube captions
-→ Clean transcript → AI summary (OpenRouter free) → Response
+### 2. Backend
 
+```bash
+cd backend
+npm install
+cp .env.example .env.local     # then fill in the keys
+node src/index.js              # http://localhost:3000
 ```
 
----
+| Variable | Value |
+|---|---|
+| `CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | Clerk dashboard → API Keys |
+| `OPENROUTER_API_KEY` | [openrouter.ai/keys](https://openrouter.ai/keys) — free, no card |
+| `MONGO_URL` | `mongodb://127.0.0.1:27017/ytsum` (matches `compose.yaml`) |
 
-## Features
+### 3. Frontend
 
-- Clerk session authentication
-- Protected API routes (JSON 401 for API clients)
-- Rate limiting
-- Centralized error handling
-- Free AI summaries via OpenRouter `:free` models (zero spend) — 4 modes (`concise`, `detailed`, `bullets`, `keypoints`)
-- Timestamped transcript + video player sync
-- Q&A grounded in the transcript, with citations
-- Notes and quiz generation
-- Per-user video history (`GET /api/history`, `GET/DELETE /api/history/:id`)
+```bash
+cd frontend
+npm install
+cp .env.example .env.local
+npm run dev                    # http://localhost:5173
+```
 
----
+| Variable | Value |
+|---|---|
+| `VITE_CLERK_PUBLISHABLE_KEY` | the **same Clerk instance** as the backend — different instances mean every request returns 401 |
+| `VITE_API_BASE_URL` | `http://localhost:3000` locally |
 
-## Tech Stack
-
-- Node.js, Express
-- MongoDB, Mongoose (local via Docker Compose)
-- Clerk, @clerk/express
-- youtube-transcript-plus
-- OpenRouter (free models)
-- React 18, Vite, TypeScript, Tailwind (frontend)
+`npm run build` typechecks and builds; `npm run lint` lints.
 
 ---
 
-## API Endpoints
+## API
 
-All routes require a Clerk session token: `Authorization: Bearer <token>`.
+All routes need a Clerk session token, `Authorization: Bearer <token>`, except
+the health probe.
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
-| POST | `/api/transcript` | `{ youtubeUrl }` | clean transcript text |
-| POST | `/api/summary` | `{ youtubeUrl, mode?, includeTranscript? }` | summary (+ transcript/timestamps) and saves to history |
+| POST | `/api/summary` | `{ youtubeUrl, mode?, includeTranscript? }` | summary (+ transcript segments) and saves to history |
 | POST | `/api/ask` | `{ question, videoId \| youtubeUrl }` | answer + timestamped citations |
-| POST | `/api/notes` | `{ videoId \| youtubeUrl }` | bullet study notes |
+| POST | `/api/notes` | `{ videoId \| youtubeUrl }` | study notes |
 | POST | `/api/quiz` | `{ videoId \| youtubeUrl, questionCount? }` | multiple-choice questions |
-| GET | `/api/history` | — | the user's saved analyses (newest first) |
-| GET | `/api/history/:id` | — | full record incl. transcript + segments |
-| DELETE | `/api/history/:id` | — | delete an owned record |
+| POST | `/api/transcript` | `{ youtubeUrl }` | clean transcript text |
+| GET | `/api/history` | — | the user's summaries, newest first |
+| GET | `/api/history/:id` | — | full record including transcript and segments |
+| DELETE | `/api/history/:id` | — | delete a record |
+| GET | `/api/health` | `?video=<id>` optional | database state, and whether the host can read that video's captions |
+
+`/api/health` exists because two things differ between a laptop and a server and
+are invisible from the UI: whether the database is connected, and whether the
+host is allowed to read YouTube captions. It returns no user data.
 
 ---
 
-## Note on AI Costs
+## Deployment
 
-All AI calls go to **OpenRouter `:free` models** — no OpenAI, no credit card, $0 spend.
+Deployed as three pieces: the frontend on **Netlify**, the API on **Render**, and
+the database on **MongoDB Atlas**.
 
-- Free models have per-IP rate limits (daily caps) and occasional 429s; the API returns a friendly retry message when that happens
-- The model is configurable via `AI_MODEL` in `.env.local` (default: `nvidia/nemotron-3.5-lightning:free`)
-- Falling back to the `openrouter/free` auto-router happens automatically on rate limits
+- Set `VITE_API_BASE_URL` in Netlify to the Render URL. It is inlined at build
+  time, so changing it requires a redeploy, not just a restart.
+- Set `CLIENT_ORIGIN` on Render to the frontend's origin, exactly, with no
+  trailing slash — it is compared as a plain string.
+- Give the backend `MONGO_URL`, `OPENROUTER_API_KEY`, the Clerk keys, and
+  `APP_URL`.
+
+### Known limitation: captions on the deployed API
+
+YouTube refuses to serve caption data to datacentre addresses. From Render's
+addresses the player response comes back without any caption tracks, so
+**summarizing a new video fails on the deployed instance** while working
+perfectly against a local backend. This was verified rather than assumed: two
+Render regions, a forced-IPv4 route, the Android and web Innertube clients, and a
+supplied Innertube key all give the same answer.
+
+Everything that reads an already-stored transcript — history, ask, notes, quiz —
+works on the deployment. To summarize new videos there, the backend needs to
+reach YouTube from a residential address: run it locally behind a tunnel
+(Cloudflare Tunnel is free), or put the caption read behind a residential proxy.
 
 ---
 
-## What This Project Shows
+## Notes on the free tier
 
-- Clean backend architecture
-- Fallback handling for unreliable APIs
-- Secure and scalable backend design
-- Real-world development practices
-
----
+- Model calls go to OpenRouter's free tier, which has rate limits. The API
+  answers with one plain sentence — *"Rate limit reached. Please try again in a
+  few minutes."* — and never names a provider, a model or a quota in anything a
+  visitor can read. The diagnostic detail (`limit`, `source`, `reset`) goes to
+  the server log.
+- `AI_MODEL` selects the model; `AI_FALLBACK_MODEL` is tried when the first is
+  rate-limited. Both default to free models.
+- Caption reads are cached in memory for 15 minutes per video, so switching
+  summary styles does not re-download the transcript.

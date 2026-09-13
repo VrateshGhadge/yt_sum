@@ -138,3 +138,13 @@
 /* The landing's own anchors travel. This belongs on the scrolling element, which
    is the document, so it cannot live in the markup as a class. */
 html:has(#landing) { scroll-behavior: smooth; }
+
+/* ---------------------------------------------------------------------------
+   Clerk
+   A development instance labels itself "Development mode" inside its own UI. It
+   is the only chrome in the product that names the environment rather than the
+   app, and it appears in screenshots and demos, so it is hidden. The name is
+   Clerk's own generated class: if a Clerk upgrade renames it the label comes
+   back, which is the whole failure mode.
+--------------------------------------------------------------------------- */
+p.cl-internal-1fpq5at { display: none; }

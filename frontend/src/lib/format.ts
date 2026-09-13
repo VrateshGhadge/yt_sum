@@ -35,7 +35,7 @@ export function videoUrl(videoId: string) {
 export function readableError(status: number, fallback?: string) {
   if (status === 401) return 'Your session expired. Sign in again.'
   if (status === 404) return 'This video has no captions available.'
-  if (status === 429) return fallback || "We're handling a lot of requests right now. Please try again in a few minutes."
+  if (status === 429) return fallback || 'Rate limit reached. Please try again in a few minutes.'
   if (status === 502) return fallback || 'The summarizer is temporarily unavailable. Please try again shortly.'
   if (status === 503) return 'That service is unavailable right now.'
   if (status >= 500) return 'Something went wrong. Please try again.'

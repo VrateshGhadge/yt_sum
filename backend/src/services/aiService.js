@@ -77,14 +77,14 @@ function rateLimitError(err) {
   if (perDay) {
     return new AiError(
       resetAt
-        ? `We're at capacity for today. Please try again ${formatReset(resetAt)}.`
-        : "We're at capacity for today. Please try again tomorrow.",
+        ? `Rate limit reached. Please try again ${formatReset(resetAt)}.`
+        : 'Rate limit reached. Please try again tomorrow.',
       { status: 429, code: 'RATE_LIMITED' }
     );
   }
 
   return new AiError(
-    "We're handling a lot of requests right now. Please try again in a few minutes.",
+    'Rate limit reached. Please try again in a few minutes.',
     { status: 429, code: 'RATE_LIMITED' }
   );
 }
